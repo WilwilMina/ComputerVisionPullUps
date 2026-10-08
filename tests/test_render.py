@@ -11,6 +11,8 @@ from pullup_rom.pose import save_pose
 from pullup_rom.render import (
     AMBER,
     CARRIED,
+    banner_lines,
+    wrap_text,
     check_video_matches,
     compute_layout,
     counter_texts,
@@ -314,3 +316,62 @@ def test_cli_image_source_runs_and_is_recorded(tmp_path):
     save_pose(npz, pose)
     assert cli.main([str(video), "-o", str(out), "--keypoints", str(npz), "--source", "image"]) == 0
     assert json.loads(out.with_suffix(".json").read_text(encoding="utf-8"))["elbow_angle_source"] == "image"
+
+
+@pytest.mark.slow
+def test_cli_records_camera_warnings_for_a_side_view(tmp_path, capsys):
+    pose, _, _ = _scene()
+    pose.keypoints[:, config.RIGHT_SHOULDER, 0] = pose.keypoints[:, config.LEFT_SHOULDER, 0] + 8.0
+    video, npz, out = tmp_path / "in.mp4", tmp_path / "kp.npz", tmp_path / "out.mp4"
+    _write_video(video, pose.num_frames)
+    save_pose(npz, pose)
+    assert cli.main([str(video), "-o", str(out), "--keypoints", str(npz)]) == 0
+    assert "side view" in capsys.readouterr().out
+    summary = json.loads(out.with_suffix(".json").read_text(encoding="utf-8"))
+    assert any("side view" in w for w in summary["warnings"])
+    assert summary["camera_checks"]["shoulder_width_over_torso_length"] < config.WARN_SIDE_VIEW_RATIO
+
+
+LONG_WARNINGS = [
+    "WARNING: 34% of frames lack a usable head or elbow signal - results unreliable",
+    "WARNING: this looks like a side view - film from the front or back; head and elbow readings are unreliable",
+    "WARNING: the wrists are at very different heights (tilted bar or side view) - the bar line may be wrong",
+]
+
+
+def _text_width(text, scale=0.42):
+    import cv2
+
+    return cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, scale, 1)[0][0]
+
+
+@pytest.mark.parametrize("width", [240, 380, 640, 1280])
+def test_banner_text_wraps_to_the_video_width_and_loses_no_words(width):
+    lines = banner_lines(LONG_WARNINGS, width)
+    assert all(_text_width(line) <= width - 16 or " " not in line for line in lines)
+    words_in = " ".join(LONG_WARNINGS).split()
+    words_out = " ".join(lines).replace(" ...", "").split()
+    if len(lines) < config.RENDER_BANNER_MAX_LINES:
+        assert words_out == words_in
+
+
+def test_banner_is_capped_and_marks_the_cut():
+    lines = banner_lines(LONG_WARNINGS * 6, 240)
+    assert len(lines) == config.RENDER_BANNER_MAX_LINES and lines[-1].endswith("...")
+    assert wrap_text("", 100) == []
+
+
+def test_every_warning_is_drawn_on_a_narrow_video(tmp_path):
+    import cv2
+
+    pose, signals, analysis = _poor_scene()
+    video, out = tmp_path / "in.mp4", tmp_path / "out.mp4"
+    _write_video(video, pose.num_frames)
+    render_video(video, pose, signals, analysis, out, warnings=LONG_WARNINGS)
+    lines = banner_lines(LONG_WARNINGS, compute_layout(SIZE).vid_w)
+    assert len(lines) > 1
+    cap = cv2.VideoCapture(str(out))
+    ok, frame = cap.read()
+    cap.release()
+    last_row = 8 + len(lines) * config.RENDER_BANNER_LINE_H_PX - 6
+    assert ok and frame[last_row : last_row + 3, 2:6].reshape(-1, 3).mean(axis=0)[2] > 120  # the banner reaches its last line

@@ -321,11 +321,42 @@ def draw_panel(panel: np.ndarray, analysis: RepAnalysis, frame: int, fps: float)
     _text(panel, "all thresholds provisional; UNKNOWN = not calibrated", (xs[0], panel.shape[0] - 10), 0.36, GREY)
 
 
-def draw_banner(frame: np.ndarray, text: str) -> None:
+def wrap_text(text: str, max_width_px: int, scale: float = 0.42) -> list[str]:
+    """Split `text` into lines no wider than `max_width_px` at the given font scale (a single over-long word keeps its own line)."""
     import cv2
 
-    cv2.rectangle(frame, (0, 0), (frame.shape[1], config.RENDER_BANNER_H_PX), BANNER_RED, -1)
-    _text(frame, text, (8, config.RENDER_BANNER_H_PX - 8), 0.5, WHITE, 1)
+    lines: list[str] = []
+    current = ""
+    for word in text.split():
+        trial = (current + " " + word).strip()
+        if not current or cv2.getTextSize(trial, _font(), scale, 1)[0][0] <= max_width_px:
+            current = trial
+        else:
+            lines.append(current)
+            current = word
+    if current:
+        lines.append(current)
+    return lines
+
+
+def banner_lines(warnings: list[str], width_px: int) -> list[str]:
+    lines: list[str] = []
+    for w in warnings:
+        lines.extend(wrap_text(w, width_px - 16))
+    if len(lines) > config.RENDER_BANNER_MAX_LINES:
+        lines = lines[: config.RENDER_BANNER_MAX_LINES]
+        lines[-1] = lines[-1] + " ..."
+    return lines
+
+
+def draw_banner(frame: np.ndarray, lines: list[str]) -> None:
+    """A red banner across the top of the video, one text line per row, so nothing is cut off at the edge."""
+    import cv2
+
+    line_h = config.RENDER_BANNER_LINE_H_PX
+    cv2.rectangle(frame, (0, 0), (frame.shape[1], len(lines) * line_h + 8), BANNER_RED, -1)
+    for i, line in enumerate(lines):
+        _text(frame, line, (8, 8 + (i + 1) * line_h - 6), 0.42, WHITE, 1)
 
 
 def render_video(
@@ -334,6 +365,7 @@ def render_video(
     signals: Signals,
     analysis: RepAnalysis,
     out_path: str | Path,
+    warnings: Optional[list[str]] = None,
 ) -> RenderStats:
     """Write the annotated video; one output frame per pose frame. Raises ValueError if it cannot be read or written."""
     import cv2
@@ -341,7 +373,9 @@ def render_video(
     layout = compute_layout(pose.frame_size)
     graph, geom = build_graph(signals, analysis, layout)
     left, right, top, bottom, t0, t1, lo, hi = geom
-    warning = warning_text(invalid_share(signals))
+    if warnings is None:
+        w = warning_text(invalid_share(signals))
+        warnings = [w] if w else []
 
     cap = cv2.VideoCapture(str(video_path))
     if not cap.isOpened():
@@ -365,8 +399,8 @@ def render_video(
         small = frame.copy() if frame.shape[:2] == (layout.vid_h, layout.vid_w) else cv2.resize(frame, (layout.vid_w, layout.vid_h))
         draw_bar_line(small, signals, i, frame_h, layout.scale)
         draw_skeleton(small, pose.keypoints[i], layout.scale)
-        if warning:
-            draw_banner(small, warning)
+        if warnings:
+            draw_banner(small, banner_lines(warnings, layout.vid_w))
 
         canvas = np.zeros((layout.canvas_h, layout.canvas_w, 3), dtype=np.uint8)
         canvas[: layout.vid_h, : layout.vid_w] = small

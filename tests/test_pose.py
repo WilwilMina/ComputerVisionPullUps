@@ -12,6 +12,7 @@ from pullup_rom.pose import (
     landmarks_to_array,
     load_pose,
     model_path,
+    progress_line,
     save_pose,
 )
 
@@ -109,3 +110,13 @@ def test_real_backend_blank_video_has_no_person(tmp_path):
     assert r.num_frames == 30
     assert not r.detected.any()
     assert np.isnan(r.keypoints[:, :, :2]).all()
+
+
+def test_progress_line_shows_frames_and_percent_and_survives_an_unknown_total():
+    assert progress_line(300, 900) == "pose model: 300/900 frames (33%)"
+    assert progress_line(120, 0) == "pose model: 120 frames"
+    assert progress_line(120, -1) == "pose model: 120 frames"
+
+
+def test_progress_percent_never_passes_100_if_the_container_under_reports_its_length():
+    assert progress_line(150, 100) == "pose model: 150/100 frames (100%)"

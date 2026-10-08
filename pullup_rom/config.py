@@ -69,9 +69,15 @@ RENDER_GRAPH_MARGINS_PX = (52, 12, 38, 22)  # graph plot area margins: left, rig
 RENDER_TABLE_TOP_PX = 118  # y of the table header in the side panel
 RENDER_TABLE_ROW_H_PX = 26
 RENDER_TABLE_COLUMNS_X = (12, 36, 136, 246, 346, 424)  # x of: rep #, head over bar, arms straight, bottom elbow, pull time, verdict
-RENDER_BANNER_H_PX = 26  # warning banner height on the video
+RENDER_BANNER_LINE_H_PX = 20  # height of one line of the warning banner on the video
+RENDER_BANNER_MAX_LINES = 8  # the banner wraps long warnings to the video width, up to this many lines
 RENDER_FRAME_MATCH_TOLERANCE = 2  # frames of slack between a video's reported length and its keypoints (containers disagree by one)
 WARN_INVALID_SHARE = 0.30  # PROVISIONAL, 0..1; when this share of frames has no usable head or elbow signal, the video and CLI warn
+
+# --- Camera-setup warnings (provisional; read off the 9 dev clips, one positive example each) ---
+WARN_SIDE_VIEW_RATIO = 0.40  # PROVISIONAL; shoulder width / torso length below this = side view. Dev clips: front/back 0.46-0.62, side view 0.33
+WARN_BAR_TILT_WRIST_GAP = 0.50  # PROVISIONAL; median left-right wrist height gap (body scales) above this = tilted bar or side view. Dev clips 0.04-0.22, tilted/side 0.83
+POSE_PROGRESS_EVERY_FRAMES = 100  # the pose model prints a progress line this often
 
 # --- Clip evaluation (diagnostic report only; never feeds rep logic) ---
 HEAD_AGREEMENT_LANDMARKS = (NOSE, LEFT_EYE, RIGHT_EYE, LEFT_EAR, RIGHT_EAR)  # heights compared for the head-spread diagnostic

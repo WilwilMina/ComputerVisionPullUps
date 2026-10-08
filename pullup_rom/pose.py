@@ -7,6 +7,7 @@ Frames with no detected person are NaN with confidence 0, never zeros.
 from __future__ import annotations
 
 import argparse
+import sys
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
@@ -92,9 +93,16 @@ def ensure_model(variant: str = config.POSE_MODEL_VARIANT) -> Path:
     return path
 
 
+def progress_line(done: int, total: int) -> str:
+    if total > 0:
+        return f"pose model: {done}/{total} frames ({min(100, 100 * done // total)}%)"
+    return f"pose model: {done} frames"
+
+
 class MediaPipePoseBackend:
-    def __init__(self, variant: str = config.POSE_MODEL_VARIANT):
+    def __init__(self, variant: str = config.POSE_MODEL_VARIANT, progress: bool = True):
         self.variant = variant
+        self.progress = progress
 
     def extract(self, video_path: str | Path) -> PoseResult:
         import cv2
@@ -113,6 +121,7 @@ class MediaPipePoseBackend:
             raise ValueError(f"Video reports invalid fps ({fps}): {video_path}")
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
         options = vision.PoseLandmarkerOptions(
             base_options=BaseOptions(model_asset_path=str(model)),
@@ -142,6 +151,8 @@ class MediaPipePoseBackend:
                     worlds.append(np.full((config.NUM_LANDMARKS, 3), np.nan, dtype=np.float32))
                 stamps.append(float(ts))
                 i += 1
+                if self.progress and i % config.POSE_PROGRESS_EVERY_FRAMES == 0:
+                    print(progress_line(i, total), file=sys.stderr, flush=True)
         cap.release()
         if not frames:
             raise ValueError(f"No frames decoded from {video_path}")
