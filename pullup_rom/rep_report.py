@@ -31,11 +31,15 @@ def _deg(x: float) -> str:
     return "  n/a" if not np.isfinite(x) else f"{x:5.0f}"
 
 
-def format_reps(analysis: RepAnalysis, source: str) -> list[str]:
-    thr = config.DEAD_HANG_ELBOW_MIN_DEG[source]
+_FROM_CONFIG = object()
+
+
+def format_reps(analysis: RepAnalysis, source: str, dead_hang_deg=_FROM_CONFIG, origin: str = "") -> list[str]:
+    """Rep table lines. `dead_hang_deg` is the threshold actually used (None = unset); default reads config."""
+    thr = config.DEAD_HANG_ELBOW_MIN_DEG[source] if dead_hang_deg is _FROM_CONFIG else dead_hang_deg
     lines = [
         f"reps: {len(analysis.reps)}  (elbow source: {source}; dead-hang threshold: "
-        f"{'UNSET (uncalibrated)' if thr is None else f'{thr:g} deg'}; head-clear margin {config.HEAD_CLEAR_MARGIN_BODY_SCALES:g} body scales, provisional)"
+        f"{'UNSET (uncalibrated)' if thr is None else f'{thr:g} deg' + (f' ({origin})' if origin else '')}; head-clear margin {config.HEAD_CLEAR_MARGIN_BODY_SCALES:g} body scales, provisional)"
     ]
     if analysis.reps:
         lines.append("  #  start   peak    end  pull time | peak h-b | elbow deg: start   end  BOTTOM | head elbow  label     | flags")

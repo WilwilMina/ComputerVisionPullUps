@@ -60,6 +60,19 @@ REP_BOTTOM_BAND_BODY_SCALES = 0.15  # PROVISIONAL; frames within this of a valle
 REP_MIN_ASCENT_S = 0.3  # PROVISIONAL, seconds; start-to-peak shorter than this is a tracking glitch, not a rep (discarded, listed)
 REP_MAX_GAP_S = 0.5  # PROVISIONAL, seconds; a missing-data gap longer than this mid-rep discards that attempt
 
+# --- Rendering and CLI (slice 4) ---
+RENDER_VIDEO_MAX_HEIGHT_PX = 720  # the source video is drawn at most this tall (never enlarged)
+RENDER_PANEL_WIDTH_PX = 520  # side panel with the rep counter and table
+RENDER_GRAPH_HEIGHT_PX = 170  # head-height graph strip under the video
+RENDER_MIN_PANEL_HEIGHT_PX = 320  # the side panel is at least this tall, so a very short source does not squash it
+RENDER_GRAPH_MARGINS_PX = (52, 12, 38, 22)  # graph plot area margins: left, right, top, bottom
+RENDER_TABLE_TOP_PX = 118  # y of the table header in the side panel
+RENDER_TABLE_ROW_H_PX = 26
+RENDER_TABLE_COLUMNS_X = (12, 36, 136, 246, 346, 424)  # x of: rep #, head over bar, arms straight, bottom elbow, pull time, verdict
+RENDER_BANNER_H_PX = 26  # warning banner height on the video
+RENDER_FRAME_MATCH_TOLERANCE = 2  # frames of slack between a video's reported length and its keypoints (containers disagree by one)
+WARN_INVALID_SHARE = 0.30  # PROVISIONAL, 0..1; when this share of frames has no usable head or elbow signal, the video and CLI warn
+
 # --- Clip evaluation (diagnostic report only; never feeds rep logic) ---
 HEAD_AGREEMENT_LANDMARKS = (NOSE, LEFT_EYE, RIGHT_EYE, LEFT_EAR, RIGHT_EAR)  # heights compared for the head-spread diagnostic
 EVAL_DRIFT_SKIP_S = 1.0  # seconds ignored at the start of a clip for the bar-drift number (the person is still reaching up)
