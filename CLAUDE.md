@@ -18,10 +18,12 @@ Python 3.13, OpenCV, NumPy, SciPy (smoothing), MediaPipe Pose Landmarker (Tasks 
 - `pullup_rom/reps.py` rep state machine (pure functions, no I/O)
 - `pullup_rom/render.py` overlay, graph, stats table -> mp4
 - `pullup_rom/cli.py`, `pullup_rom/config.py`, `tests/`
+- `pullup_rom/rep_report.py`, `pullup_rom/eval_clips.py` inspection tools (I/O lives here, not in `reps.py`)
+- `tools/scan_sensitive.py` + `.githooks/` commit and push security scan
 
 ## Commands
 - Install: `pip install -r requirements.txt`
-- Test: `python -m pytest -q`
+- Test: `python -m pytest -q` (fast suite). Also `python -m pytest -q -m slow` after touching `tools/` or `.githooks/` (builds throwaway git repos).
 - Run (once built): `python -m pullup_rom.cli input.mp4 -o out.mp4`
 
 ## Workflow
@@ -29,7 +31,7 @@ Python 3.13, OpenCV, NumPy, SciPy (smoothing), MediaPipe Pose Landmarker (Tasks 
 - A `.py` edit triggers the fast test hook automatically. Fix failures before continuing.
 - Need current external info? Delegate to `researcher`. Before calling a feature done, run the `qa` agent. Both return short reports; the parent fixes and decides.
 - Re-checking tracking on the dev clips in `data/external/` (reading plots and contact sheets) goes to the `clip-evaluator` agent, so images do not fill the parent's context. Delegate any other large, mechanical read-only task the same way.
-- After each slice passes tests and `qa`, commit it locally with a clear message. Before committing, run `git status` and confirm nothing from `data/`, no videos, model files, or `.env` is staged, and that the directory layout still matches `.claude/rules/architecture.md`. Never push; the user pushes.
+- After each slice passes tests and `qa`, commit it locally with a clear message. Before committing, run `git status` and confirm nothing from `data/`, no videos, model files, or `.env` is staged, and that the directory layout still matches `.claude/rules/architecture.md`. The `.githooks/` pre-commit hook runs `tools/scan_sensitive.py` (secrets, media, models, data, personal paths and emails); run `python tools/scan_sensitive.py --staged` yourself too, and never use `--no-verify`. Never push; the user pushes (the pre-push hook scans what they send).
 - Rules are in `.claude/rules/` (architecture, testing). Read them before changing module boundaries or tests.
 - Update `docs/PROGRESS.md` at the end of every session. Files and git history are the source of truth, not conversation memory.
 

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Blocks a push whose commits contain secrets, media, models, data, personal paths/emails, or a non-no-reply author.
+py=python
+[ -x .venv/Scripts/python.exe ] && py=.venv/Scripts/python.exe
+[ -x .venv/bin/python ] && py=.venv/bin/python
+exec "$py" tools/scan_sensitive.py --push-stdin "$@"
