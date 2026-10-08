@@ -1,0 +1,31 @@
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# media, models, outputs (large, not source)
+*.mp4
+*.mov
+*.avi
+*.task
+*.pt
+*.onnx
+output/
+outputs/
+
+# secrets and local settings
+.env
+.env.*
+.claude/settings.local.json
+
+# keypoint caches and run outputs
+*.npz
+models/
+out/
+
+# dev-only test clips, SOURCES.md, caches (never commit)
+data/
+samples/
+
+# third-party reference material (ownership/redistribution unknown)
+docs/reference/*.pdf
