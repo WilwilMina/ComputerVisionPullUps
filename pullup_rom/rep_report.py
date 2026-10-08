@@ -38,17 +38,18 @@ def format_reps(analysis: RepAnalysis, source: str) -> list[str]:
         f"{'UNSET (uncalibrated)' if thr is None else f'{thr:g} deg'}; head-clear margin {config.HEAD_CLEAR_MARGIN_BODY_SCALES:g} body scales, provisional)"
     ]
     if analysis.reps:
-        lines.append("  #  start   peak    end | peak h-b | elbow deg: start   end  BOTTOM | head elbow  label     | flags")
+        lines.append("  #  start   peak    end  pull time | peak h-b | elbow deg: start   end  BOTTOM | head elbow  label     | flags")
     for r in analysis.reps:
         elbow_ok = {True: "ok ", False: "no ", None: "?  "}[r.elbow_ok]
         flags = list(r.reasons) + (["bar_carried_at_peak"] if r.peak_bar_carried else [])
+        pull = "   n/a" if r.pull_time_s is None else f"{r.pull_time_s:5.1f}s"
         lines.append(
-            f" {r.index:2d} {r.start_s:6.1f}s {r.peak_s:5.1f}s {r.end_s:5.1f}s | {r.peak_head_minus_bar:8.2f} | "
+            f" {r.index:2d} {r.start_s:6.1f}s {r.peak_s:5.1f}s {r.end_s:5.1f}s {pull} | {r.peak_head_minus_bar:8.2f} | "
             f"           {_deg(r.elbow_start_deg)} {_deg(r.elbow_end_deg)} {_deg(r.bottom_elbow_deg)} | "
             f"{'ok  ' if r.head_ok else 'no  '} {elbow_ok}  {_label(r):<9} | {', '.join(flags) if flags else '-'}"
         )
     for d in analysis.discarded:
-        lines.append(f"  discarded attempt frames {d.start_frame}-{d.end_frame}: {d.reason}")
+        lines.append(f"  {d.label}: {d.start_s:.1f}s to {d.end_s:.1f}s (not counted as a rep)")
     return lines
 
 

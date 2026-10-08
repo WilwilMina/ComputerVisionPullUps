@@ -257,3 +257,43 @@ def test_the_start_of_a_rep_is_when_the_pull_begins_not_the_start_of_a_long_hang
     head, elbow = make_rep_series(peaks=[0.4], valley_elbows=[165, 165], lead_s=6.0)
     r = run(head, elbow).reps[0]
     assert 5.5 < r.start_s < 7.0 and r.peak_s > r.start_s
+
+
+# ---------- decisions: uncertain attempts are listed, rep end = first return to the low level ----------
+
+def test_a_tracking_gap_attempt_is_reported_as_uncertain_with_its_time_range():
+    head, elbow = make_rep_series(peaks=[0.4], valley_elbows=[165, 165])
+    peak = int(np.argmax(head))
+    head = head.copy()
+    head[peak - 15 : peak + 15] = np.nan
+    a = run(head, elbow)
+    assert a.reps == [] and len(a.discarded) == 1
+    d = a.discarded[0]
+    assert d.label == "uncertain (tracking gap)"
+    assert 0.5 < d.start_s < d.end_s <= len(head) / FPS  # starts as the pull begins, ends where tracking resumes
+    assert d.start_s < peak / FPS < d.end_s
+
+
+def test_a_glitch_is_labelled_as_ignored_not_as_uncertain():
+    head, elbow = make_rep_series(peaks=[0.4], valley_elbows=[165, 165], lead_s=2.0)
+    head = head.copy()
+    head[15:19] += 1.5
+    assert any(d.label.startswith("ignored") for d in run(head, elbow).discarded)
+
+
+def test_rep_end_is_the_first_return_to_the_starting_low_level_even_if_the_hang_keeps_sinking():
+    head, elbow = make_rep_series(peaks=[0.4], valley_elbows=[165, 165], tail_s=8.0)
+    tail = len(head) - int(8.0 * FPS)
+    sink = np.zeros(len(head))
+    sink[tail:] = -np.linspace(0.0, 0.3, len(head) - tail)  # keeps dropping well past the bottom band
+    r = run(head + sink, elbow).reps[0]
+    first_back_at_bottom = int(np.argmax((np.arange(len(head)) > np.argmax(head)) & (head <= -1.0 + 0.15)))
+    assert abs(r.end_frame - first_back_at_bottom) <= 1
+
+
+def test_pull_time_is_bottom_to_top_to_bottom_and_none_for_a_clipped_rep():
+    head, elbow = make_rep_series(peaks=[0.4], valley_elbows=[165, 165], up_s=1.0, hold_s=0.3, down_s=1.2)
+    r = run(head, elbow).reps[0]
+    assert 2.0 < r.pull_time_s < 2.8 and 0.7 < r.ascent_s < 1.2
+    cut = run(head[: int(np.argmax(head)) + 5], elbow[: int(np.argmax(head)) + 5]).reps[0]
+    assert cut.pull_time_s is None and cut.ascent_s > 0

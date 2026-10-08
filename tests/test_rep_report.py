@@ -21,4 +21,5 @@ def test_rep_table_with_a_threshold_labels_full_and_lists_discarded_attempts():
     head = head.copy()
     head[peak - 15 : peak + 15] = np.nan
     analysis = detect_reps(head, elbow, 30.0, RepParams(dead_hang_elbow_min_deg=150.0))
-    assert "discarded attempt" in "\n".join(format_reps(analysis, "image"))
+    text = " ".join(format_reps(analysis, "image"))
+    assert "uncertain (tracking gap)" in text and " to " in text

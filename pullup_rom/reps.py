@@ -2,11 +2,15 @@
 
 Input is the slice-2 time series: `head_minus_bar` (unitless, >0 = head above the bar, NaN where unusable)
 and `elbow_deg` (NaN where unusable). The head signal finds the reps; the elbow angle is read ONLY at the
-bottom of each rep (the dead-hang valleys before and after it) and never at the top.
+bottom of each rep (the dead-hang regions before and after it) and never at the top.
 
 A rep is FULL only if the head clears the bar AND the bottom elbow angle reaches the dead-hang threshold.
 That threshold is a per-angle-source calibrated parameter with no default value: while it is None a rep that
-clears the bar has full=None (uncalibrated) rather than a guessed label.
+clears the bar has full=None (unknown) rather than a guessed label.
+
+A rep runs from the last frame at the bottom before the pull (start), through the peak, to the first frame the
+head is back at the low level it started from (end). Attempts the logic cannot trust are never dropped
+silently: they are returned in `RepAnalysis.discarded` with a time range.
 """
 from __future__ import annotations
 
@@ -22,6 +26,9 @@ REASON_ELBOW_NOT_EXTENDED = "elbow_not_extended"
 REASON_ELBOW_UNCALIBRATED = "elbow_threshold_uncalibrated"
 REASON_ELBOW_MISSING = "elbow_angle_missing"
 REASON_CLIP_ENDED_MID_REP = "clip_ended_mid_rep"
+
+DISCARD_TRACKING_GAP = "gap_longer_than_max_during_rep"
+DISCARD_TOO_SHORT = "ascent_shorter_than_min_duration"
 
 
 @dataclass(frozen=True)
@@ -56,9 +63,9 @@ class RepParams:
 @dataclass(frozen=True)
 class Rep:
     index: int  # 1-based
-    start_frame: int  # last frame at the bottom before the pull (departure)
+    start_frame: int  # last frame at the bottom before the pull
     peak_frame: int
-    end_frame: int  # first frame back at the bottom after lowering (arrival); last finite frame if the clip ended mid-rep
+    end_frame: int  # first frame back at the low level the rep started from (last finite frame if the clip ended mid-rep)
     start_s: float
     peak_s: float
     end_s: float
@@ -70,14 +77,37 @@ class Rep:
     elbow_ok: Optional[bool]  # None = unknown (threshold unset or no elbow data)
     full: Optional[bool]  # False if the head failed; None if the head passed but the elbow is unknown
     peak_bar_carried: bool  # the bar value at the peak came from neighbouring frames
+    clipped: bool = False  # the clip ended before the head came back down
     reasons: tuple[str, ...] = field(default_factory=tuple)
+
+    @property
+    def ascent_s(self) -> float:
+        """Bottom to top."""
+        return self.peak_s - self.start_s
+
+    @property
+    def pull_time_s(self) -> Optional[float]:
+        """Bottom to top and back to the bottom; None when the clip ended before the head came back down."""
+        return None if self.clipped else self.end_s - self.start_s
 
 
 @dataclass(frozen=True)
 class DiscardedAttempt:
+    """A rep-like movement the logic did not count. Reported, never dropped silently."""
+
     start_frame: int
     end_frame: int
     reason: str
+    start_s: float
+    end_s: float
+
+    @property
+    def label(self) -> str:
+        if self.reason == DISCARD_TRACKING_GAP:
+            return "uncertain (tracking gap)"
+        if self.reason == DISCARD_TOO_SHORT:
+            return "ignored (too short to be a rep)"
+        return self.reason
 
 
 @dataclass(frozen=True)
@@ -86,29 +116,24 @@ class RepAnalysis:
     discarded: list[DiscardedAttempt]
 
 
-def _valley_region(head: np.ndarray, valley: int, lo: int, hi: int, band: float) -> tuple[int, int]:
-    """(arrival, departure): the contiguous frames around `valley` whose head is within `band` of it.
-
-    Arrival is the first frame back at the bottom, departure the last frame there before the next pull, so a
-    long hang does not stretch a rep's end to wherever the noise happened to dip lowest.
-    """
-    limit = head[valley] + band
-    a = valley
+def _region_from(head: np.ndarray, seed: int, lo: int, hi: int, limit: float) -> tuple[int, int]:
+    """(first, last) of the contiguous finite frames around `seed`, within [lo, hi], with head <= limit."""
+    a = seed
     while a - 1 >= lo and np.isfinite(head[a - 1]) and head[a - 1] <= limit:
         a -= 1
-    d = valley
+    d = seed
     while d + 1 <= hi and np.isfinite(head[d + 1]) and head[d + 1] <= limit:
         d += 1
     return a, d
 
 
-def _median_elbow(elbow: np.ndarray, arrival: int, departure: int) -> float:
+def _median_elbow(elbow: np.ndarray, first: int, last: int) -> float:
     """Median elbow angle over a bottom region.
 
     A median, not a maximum: with noisy angles a maximum drifts upward and can lift a bent bottom over the
     dead-hang threshold. Most of the region is the hang plateau, so the median sits on the plateau.
     """
-    vals = elbow[arrival : departure + 1]
+    vals = elbow[first : last + 1]
     vals = vals[np.isfinite(vals)]
     return float(np.median(vals)) if vals.size else float("nan")
 
@@ -134,22 +159,25 @@ def detect_reps(
     debounce = max(1, int(round(p.debounce_s * fps)))
     max_gap = int(round(p.max_gap_s * fps))
 
-    raw: list[dict] = []  # {start, peak, peak_v, end, clipped}
+    raw: list[dict] = []  # {start, low, peak, peak_v, valley, clipped}
     discarded: list[DiscardedAttempt] = []
     state = "hang"
     valley_i = valley_v = None
     cur: Optional[dict] = None  # the ascent in progress
-    pending: Optional[dict] = None  # a finished ascent waiting for its end valley
+    pending: Optional[dict] = None  # a finished ascent waiting for its lowest point after lowering
     up_count = down_count = 0
     gap = 0
     last_finite = -1
 
-    def close_pending(end_i: int) -> None:
+    def close_pending(valley: int) -> None:
         nonlocal pending
         if pending is not None:
-            pending["end"] = end_i
+            pending["valley"] = valley
             raw.append(pending)
             pending = None
+
+    def departure_of(start_valley: int) -> int:
+        return _region_from(head, start_valley, 0, n - 1, head[start_valley] + p.bottom_band)[1]
 
     for i in range(n):
         h = head[i]
@@ -157,9 +185,10 @@ def detect_reps(
             gap += 1
             continue
         if gap > max_gap and last_finite >= 0:
-            # A long hole in the data: never link across it. Drop an unfinished ascent, close a finished one.
+            # A long hole in the data: never link across it. Report an unfinished ascent as uncertain, close a finished one.
             if state == "up":
-                discarded.append(DiscardedAttempt(cur["start"], last_finite, "gap_longer_than_max_during_rep"))
+                dep = departure_of(cur["start"])
+                discarded.append(DiscardedAttempt(dep, i, DISCARD_TRACKING_GAP, dep / fps, i / fps))
                 close_pending(cur["start"])
                 cur = None
             else:
@@ -177,7 +206,7 @@ def detect_reps(
             up_count = up_count + 1 if h - valley_v >= p.start_rise else 0
             if up_count >= debounce:
                 close_pending(valley_i)  # the valley between two reps ends one and starts the next
-                cur = {"start": valley_i, "peak": i, "peak_v": h, "clipped": False}
+                cur = {"start": valley_i, "low": valley_v, "peak": i, "peak_v": h, "clipped": False}
                 state, up_count, down_count = "up", 0, 0
         else:
             if h > cur["peak_v"]:
@@ -190,18 +219,27 @@ def detect_reps(
 
     if state == "up" and cur is not None:  # clip ended before the head came back down
         cur["clipped"] = True
-        cur["end"] = last_finite
+        cur["valley"] = last_finite
         raw.append(cur)
     else:
         close_pending(valley_i)
 
     def start_region(seq: list[dict], k: int) -> tuple[int, int]:
         lo = seq[k - 1]["peak"] if k > 0 else 0
-        return _valley_region(head, seq[k]["start"], lo, seq[k]["peak"], p.bottom_band)
+        return _region_from(head, seq[k]["start"], lo, seq[k]["peak"], head[seq[k]["start"]] + p.bottom_band)
 
     def end_region(seq: list[dict], k: int) -> tuple[int, int]:
+        """Arrival = first frame after the peak with the head back at the low level the rep started from.
+
+        If it never gets back within `bottom_band` of that level, fall back to the region around its lowest point.
+        """
+        r = seq[k]
         hi = seq[k + 1]["peak"] if k + 1 < len(seq) else n - 1
-        return _valley_region(head, seq[k]["end"], seq[k]["peak"], hi, p.bottom_band)
+        limit = r["low"] + p.bottom_band
+        for j in range(r["peak"] + 1, r["valley"] + 1):
+            if np.isfinite(head[j]) and head[j] <= limit:
+                return _region_from(head, j, r["peak"], hi, limit)
+        return _region_from(head, r["valley"], r["peak"], hi, head[r["valley"]] + p.bottom_band)
 
     # A rep's ascent runs from the last frame at the bottom to the peak. Anything shorter than
     # min_ascent_s is a tracking glitch, not a rep.
@@ -210,17 +248,18 @@ def detect_reps(
     for k, r in enumerate(raw):
         departure = start_region(raw, k)[1]
         if r["peak"] - departure < min_ascent:
-            discarded.append(DiscardedAttempt(departure, r["end"], "ascent_shorter_than_min_duration"))
+            discarded.append(DiscardedAttempt(departure, r["valley"], DISCARD_TOO_SHORT, departure / fps, r["valley"] / fps))
         else:
             kept.append(r)
     raw = kept
+    discarded.sort(key=lambda d: d.start_frame)
 
     reps: list[Rep] = []
     for k, r in enumerate(raw):
         s_arr, s_dep = start_region(raw, k)
         elbow_start = _median_elbow(elbow, s_arr, s_dep)
         if r["clipped"]:
-            e_arr, elbow_end = r["end"], float("nan")
+            e_arr, elbow_end = r["valley"], float("nan")
         else:
             e_arr, e_dep = end_region(raw, k)
             elbow_end = _median_elbow(elbow, e_arr, e_dep)
@@ -262,6 +301,7 @@ def detect_reps(
                 elbow_ok=elbow_ok,
                 full=full,
                 peak_bar_carried=bool(bar_carried[r["peak"]]) if bar_carried is not None else False,
+                clipped=bool(r["clipped"]),
                 reasons=tuple(reasons),
             )
         )
