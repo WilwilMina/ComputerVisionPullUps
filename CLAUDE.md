@@ -20,6 +20,7 @@ Python 3.13, OpenCV, NumPy, SciPy (smoothing), MediaPipe Pose Landmarker (Tasks 
 - `pullup_rom/cli.py`, `pullup_rom/config.py`, `tests/`
 - `pullup_rom/rep_report.py`, `pullup_rom/eval_clips.py` inspection tools (I/O lives here, not in `reps.py`)
 - `tools/scan_sensitive.py` + `.githooks/` commit and push security scan
+- `labels/` committed hand/agent labels (clip IDs, rep times, labels, notes only; no URLs, authors or video-derived data)
 
 ## Commands
 - Install: `pip install -r requirements.txt`
