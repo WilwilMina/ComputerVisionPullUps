@@ -21,6 +21,7 @@ from .pose import MediaPipePoseBackend, PoseResult, load_pose, save_pose
 from .rep_report import format_reps
 from .render import RenderStats, check_video_matches, invalid_share, render_video, warning_text
 from .reps import RepAnalysis, RepParams, detect_reps
+from .style import StyleChecks, style_checks, style_warnings
 
 NOTE = (
     "All thresholds are provisional placeholders. UNKNOWN means the dead-hang elbow threshold for this angle "
@@ -43,6 +44,7 @@ def build_summary(
     warnings: list[str],
     stats: Optional[RenderStats],
     camera: Optional[CameraChecks] = None,
+    style: Optional[StyleChecks] = None,
 ) -> dict:
     n = pose.num_frames
     return {
@@ -66,6 +68,11 @@ def build_summary(
         "camera_checks": None if camera is None else {
             "shoulder_width_over_torso_length": _num(camera.shoulder_torso_ratio) if camera.shoulder_torso_ratio is not None else None,
             "wrist_height_gap_body_scales": _num(camera.wrist_gap_body_scales) if camera.wrist_gap_body_scales is not None else None,
+        },
+        "style_checks": None if style is None else {
+            "median_bottom_torso_tilt_deg": None if style.bottom_tilt_deg is None else _num(style.bottom_tilt_deg),
+            "reps_used": style.reps_used,
+            "flag_at_deg": config.UNSUPPORTED_SWING_BOTTOM_TILT_DEG,
         },
         "output_video": None if stats is None else {"frames": stats.frames, "width": stats.size[0], "height": stats.size[1]},
         "reps": [
@@ -140,6 +147,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         warnings.append(w)
     checks = camera_checks(pose)
     warnings.extend(camera_warnings(checks))
+    style = style_checks(pose, analysis.reps)
+    warnings.extend(style_warnings(style))
     try:
         stats = render_video(video, pose, signals, analysis, out, warnings, elbow_source=args.source)
     except (ValueError, OSError) as e:
@@ -148,7 +157,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         warnings.append(f"WARNING: the video ended after {stats.frames} of {pose.num_frames} frames; the output is incomplete")
 
     summary_path = Path(args.summary) if args.summary else out.with_suffix(".json")
-    summary = build_summary(str(video), pose, signals, analysis, args.source, rep_params.dead_hang_elbow_min_deg, origin, warnings, stats, checks)
+    summary = build_summary(str(video), pose, signals, analysis, args.source, rep_params.dead_hang_elbow_min_deg, origin, warnings, stats, checks, style)
     try:
         summary_path.parent.mkdir(parents=True, exist_ok=True)
         summary_path.write_text(json.dumps(summary, indent=2, allow_nan=False), encoding="utf-8")

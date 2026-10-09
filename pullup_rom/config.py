@@ -91,6 +91,15 @@ WARN_INVALID_SHARE = 0.30  # PROVISIONAL, 0..1; when this share of frames has no
 # --- Camera-setup warnings (provisional; read off the 9 dev clips, one positive example each) ---
 WARN_SIDE_VIEW_RATIO = 0.40  # PROVISIONAL; shoulder width / torso length below this = side view. Dev clips: front/back 0.46-0.62, side view 0.33
 WARN_BAR_TILT_WRIST_GAP = 0.50  # PROVISIONAL; median left-right wrist height gap (body scales) above this = tilted bar or side view. Dev clips 0.04-0.22, tilted/side 0.83
+# --- Unsupported-style flag (kipping / swinging); advisory, never changes a verdict ---
+# PROVISIONAL, from ONE positive clip: the median torso tilt (3D world, from vertical) at the rep bottoms, as pullup_rom/style.py measures
+# it, is 23.1 deg on pexels_14284164 (kipping, owner-confirmed as unsupported style) and at most 10.7 deg on the four labelled
+# non-kipping clips (pexels_10336041 6.3, pexels_6389831 7.5, pexels_15859716 3.7, pexels_7187450 10.7). 15 sits between them; it was NOT
+# fitted finely. UNLABELLED dev clips: pexels_35585615 reads 24.7 and pexels_14293451 16.3 (both flagged; style not yet checked by eye),
+# the rest read 5.3-10.7. The model's 3D lean is least reliable toward/away from the camera, so this is a coarse advisory.
+UNSUPPORTED_SWING_BOTTOM_TILT_DEG = 15.0  # flag when the median bottom tilt reaches this many degrees from vertical
+UNSUPPORTED_SWING_MIN_REPS = 2  # fewer measurable reps than this: no flag (not enough to call a style)
+SWING_BOTTOM_HALF_WINDOW_FRAMES = 2  # the bottom tilt is the median over the rep's start/end frame +/- this many frames
 POSE_PROGRESS_EVERY_FRAMES = 100  # the pose model prints a progress line this often
 
 # --- Clip evaluation (diagnostic report only; never feeds rep logic) ---
