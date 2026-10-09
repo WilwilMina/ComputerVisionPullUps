@@ -10,7 +10,7 @@ stock clips whose reps the project owner labelled as full range of motion. That 
 estimate, not a true joint angle: it reads about 145-155 on arms that look nearly straight. It is one-sided: with no bent-elbow examples it is the
 strictest value that keeps those reps FULL, and it says nothing about where a bent elbow starts. The 2D angle has
 no threshold (it depends on the camera view), so with `--source image` the arms check shows **UNKNOWN**. This
-repository makes **no accuracy claims**: nothing has been validated on held-out, labelled reps yet.
+repository makes **no accuracy claims**: nothing has been validated on held-out, labelled reps yet. There are still **no validated bad-rep examples**: bent-elbow-bottom and chin-short-of-bar detection are untested on real footage, and on two other labelled clips the 3D arms check disagreed with most labelled-FULL reps, so the threshold does not yet transfer between people and camera views.
 
 ## How a rep is judged
 - The pose model (MediaPipe Pose Landmarker, behind a swappable `PoseBackend` interface) finds body points per frame.
