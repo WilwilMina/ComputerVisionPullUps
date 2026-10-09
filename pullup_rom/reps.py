@@ -78,6 +78,8 @@ class Rep:
     full: Optional[bool]  # False if the head failed; None if the head passed but the elbow is unknown
     peak_bar_carried: bool  # the bar value at the peak came from neighbouring frames
     clipped: bool = False  # the clip ended before the head came back down
+    start_window_frames: int = 0  # length of the bottom window the start angle was measured over
+    end_window_frames: int = 0  # same for the end angle (0 if the clip ended mid-rep)
     reasons: tuple[str, ...] = field(default_factory=tuple)
 
     @property
@@ -259,10 +261,11 @@ def detect_reps(
         s_arr, s_dep = start_region(raw, k)
         elbow_start = _median_elbow(elbow, s_arr, s_dep)
         if r["clipped"]:
-            e_arr, elbow_end = r["valley"], float("nan")
+            e_arr, elbow_end, end_window = r["valley"], float("nan"), 0
         else:
             e_arr, e_dep = end_region(raw, k)
             elbow_end = _median_elbow(elbow, e_arr, e_dep)
+            end_window = e_dep - e_arr + 1
         bottoms = [v for v in (elbow_start, elbow_end) if np.isfinite(v)]
         bottom = min(bottoms) if bottoms else float("nan")
 
@@ -304,6 +307,8 @@ def detect_reps(
                 full=full,
                 peak_bar_carried=bool(bar_carried[r["peak"]]) if bar_carried is not None else False,
                 clipped=bool(r["clipped"]),
+                start_window_frames=s_dep - s_arr + 1,
+                end_window_frames=end_window,
                 reasons=tuple(reasons),
             )
         )

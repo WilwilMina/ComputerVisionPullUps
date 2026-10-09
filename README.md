@@ -5,8 +5,9 @@ did the head clear the bar, and did the arms get back to a dead hang. It writes 
 rep counter, head-height graph, per-rep table) and a JSON summary.
 
 **Status: work in progress.** Every threshold is a provisional placeholder in `pullup_rom/config.py`. The one
-calibration so far is the dead-hang elbow threshold for the 3D angle (144 degrees), set from two stock clips whose
-reps the project owner labelled as full range of motion. It is one-sided: with no bent-elbow examples it is the
+calibration so far is the dead-hang elbow threshold (144) for the model-estimated 3D elbow angle, set from two
+stock clips whose reps the project owner labelled as full range of motion. That angle is the pose model's
+estimate, not a true joint angle: it reads about 145-155 on arms that look nearly straight. It is one-sided: with no bent-elbow examples it is the
 strictest value that keeps those reps FULL, and it says nothing about where a bent elbow starts. The 2D angle has
 no threshold (it depends on the camera view), so with `--source image` the arms check shows **UNKNOWN**. This
 repository makes **no accuracy claims**: nothing has been validated on held-out, labelled reps yet.

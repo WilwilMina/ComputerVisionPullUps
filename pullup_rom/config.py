@@ -43,14 +43,15 @@ BODY_SCALE_WINDOW_S = 2.0  # PROVISIONAL, seconds; rolling median so pose change
 BAR_WINDOW_S = 2.0  # PROVISIONAL, seconds; centred rolling-median window for the bar line
 BAR_MIN_CONFIDENT_SHARE = 0.25  # PROVISIONAL, 0..1; min share of the bar window with confident gripping wrists, else no bar value
 BAR_OFFSET_BODY_SCALES = 0.0  # PROVISIONAL; wrist-joint-to-bar-top offset, in body scales, to measure
-ELBOW_ANGLE_SOURCE = "world"  # PROVISIONAL: "world" (3D, view-independent) | "image" (2D pixels)
+ELBOW_ANGLE_SOURCE = "world"  # PROVISIONAL: "world" (the model's estimated 3D angle) | "image" (2D pixels, depends on the camera view)
 ELBOW_ARM_COMBINE = "mean"  # PROVISIONAL: "mean" | "min" of the two arms
 
 # --- Rep logic (slice 3) ---
 # ALL PROVISIONAL placeholders, none derived from footage yet (see docs/PROGRESS.md).
 HEAD_CLEAR_MARGIN_BODY_SCALES = 0.0  # PROVISIONAL; head_minus_bar must reach this at the top. 0 = nose at the wrist line; BlazePose has no chin
 # Dead-hang elbow angle (deg) a rep's bottom must reach, PER ANGLE SOURCE (a rep passes at or above it).
-# "world" (3D): 144.0, calibrated on 2026-10-09 from the user's labels: every rep in pexels_10336041 and
+# "world" (3D): 144.0. This is a MODEL-ESTIMATED 3D elbow angle, not a true elbow angle: it reads ~145-155 on arms
+#   that look nearly straight. Calibrated on 2026-10-09 from the user's labels: every rep in pexels_10336041 and
 #   pexels_6389831 is a full-ROM rep. The 13 complete reps there have bottom angles 144.86 to 154.60 deg (3D);
 #   144.0 is the lowest whole degree at or below all of them, i.e. the strictest value that keeps every
 #   labelled rep FULL. ONE-SIDED: there were no bent-elbow examples, so it says nothing about where bent starts,
@@ -86,6 +87,7 @@ WARN_BAR_TILT_WRIST_GAP = 0.50  # PROVISIONAL; median left-right wrist height ga
 POSE_PROGRESS_EVERY_FRAMES = 100  # the pose model prints a progress line this often
 
 # --- Clip evaluation (diagnostic report only; never feeds rep logic) ---
+LABEL_SNAP_WINDOW_S = 1.0  # a hand-labelled top time is matched to the nearest detected rep peak within this many seconds (visual times are good to ~0.3 s; the peak is not exactly 'chin at the bar')
 HEAD_AGREEMENT_LANDMARKS = (NOSE, LEFT_EYE, RIGHT_EYE, LEFT_EAR, RIGHT_EAR)  # heights compared for the head-spread diagnostic
 EVAL_DRIFT_SKIP_S = 1.0  # seconds ignored at the start of a clip for the bar-drift number (the person is still reaching up)
 EVAL_VIDEO_SUFFIXES = (".mp4", ".webm", ".mov", ".mkv", ".m4v")

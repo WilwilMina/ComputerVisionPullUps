@@ -310,3 +310,11 @@ def test_a_rep_cut_off_by_the_end_of_the_clip_is_unknown_not_full():
     cut = run(head[: peak + 5], elbow[: peak + 5]).reps[0]  # threshold set, head cleared, start bottom fine
     assert cut.clipped and cut.head_ok and cut.elbow_ok is None and cut.full is None
     assert REASON_CLIP_ENDED_MID_REP in cut.reasons
+
+
+def test_bottom_window_lengths_are_reported_per_rep():
+    head, elbow = make_rep_series(peaks=[0.4], valley_elbows=[165, 165], lead_s=1.0, tail_s=1.0)
+    r = run(head, elbow).reps[0]
+    assert 25 <= r.start_window_frames <= 40 and 25 <= r.end_window_frames <= 40  # about 1 s at 30 fps
+    clipped = run(head[: int(np.argmax(head)) + 5], elbow[: int(np.argmax(head)) + 5]).reps[0]
+    assert clipped.start_window_frames > 0 and clipped.end_window_frames == 0
