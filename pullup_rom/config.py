@@ -83,6 +83,8 @@ RENDER_TABLE_ROW_H_PX = 26
 RENDER_TABLE_COLUMNS_X = (12, 36, 136, 246, 346, 424)  # x of: rep #, head over bar, arms straight, bottom elbow, pull time, verdict
 RENDER_BANNER_LINE_H_PX = 20  # height of one line of the warning banner on the video
 RENDER_BANNER_MAX_LINES = 8  # the banner wraps long warnings to the video width, up to this many lines
+RENDER_ELBOW_READOUT_MARGIN_PX = 8  # the live elbow readout sits this far from the video's bottom-left corner
+RENDER_ELBOW_READOUT_SIZE = 0.5  # its text size (OpenCV font scale)
 RENDER_FRAME_MATCH_TOLERANCE = 2  # frames of slack between a video's reported length and its keypoints (containers disagree by one)
 WARN_INVALID_SHARE = 0.30  # PROVISIONAL, 0..1; when this share of frames has no usable head or elbow signal, the video and CLI warn
 

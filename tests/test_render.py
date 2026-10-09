@@ -386,3 +386,50 @@ def test_pull_time_is_shown_as_information_and_does_not_change_the_verdict_row()
     assert fast.pull_time != slow.pull_time
     assert (fast.head_cleared, fast.arms_straight, fast.verdict) == (slow.head_cleared, slow.arms_straight, slow.verdict) == ("yes", "yes", "FULL")
     assert verdict_color(fast.verdict) == verdict_color(slow.verdict)
+
+
+def test_elbow_readout_is_labelled_as_an_estimate_and_hidden_when_invalid():
+    from pullup_rom.render import elbow_readout_text
+
+    pose, signals, _ = _scene(peaks=(0.4,), threshold=150.0)
+    shown = [i for i in range(pose.num_frames) if signals.elbow_valid[i]]
+    assert shown, "the synthetic scene must have valid elbow frames"
+    text = elbow_readout_text(signals, shown[len(shown) // 2], "world")
+    assert text.startswith("elbow ") and "deg" in text and "model estimate" in text
+    assert "2D pixel angle" in elbow_readout_text(signals, shown[0], "image")
+    invalid = [i for i in range(pose.num_frames) if not signals.elbow_valid[i]]
+    signals.elbow_valid[shown[0]] = False
+    assert elbow_readout_text(signals, shown[0], "world") is None  # hidden when invalid
+    signals.elbow_valid[shown[0]] = True
+    signals.elbow_deg[shown[0]] = np.nan
+    assert elbow_readout_text(signals, shown[0], "world") is None  # and when the value itself is missing
+    assert invalid is not None
+
+
+def test_the_rendered_video_draws_the_readout_on_valid_frames(tmp_path, scene):
+    import cv2
+
+    pose, signals, analysis = _scene(peaks=(0.4,), threshold=150.0)
+    video = tmp_path / "in.mp4"
+    w = cv2.VideoWriter(str(video), cv2.VideoWriter_fourcc(*"mp4v"), FPS, pose.frame_size)
+    for _ in range(pose.num_frames):
+        w.write(np.full((pose.frame_size[1], pose.frame_size[0], 3), 90, dtype=np.uint8))
+    w.release()
+    out_on, out_off = tmp_path / "on.mp4", tmp_path / "off.mp4"
+    from pullup_rom.render import render_video
+
+    render_video(video, pose, signals, analysis, out_on)
+    hidden = signals.elbow_valid.copy()
+    signals.elbow_valid[:] = False
+    render_video(video, pose, signals, analysis, out_off)
+    signals.elbow_valid[:] = hidden
+    mid = int(np.flatnonzero(hidden)[len(np.flatnonzero(hidden)) // 2])
+    layout = compute_layout(pose.frame_size)
+
+    def corner(path):
+        cap = cv2.VideoCapture(str(path))
+        cap.set(cv2.CAP_PROP_POS_FRAMES, mid)
+        _, img = cap.read()
+        return img[layout.vid_h - 40 : layout.vid_h, :200].astype(int)  # the video's bottom-left corner
+
+    assert np.abs(corner(out_on) - corner(out_off)).sum() > 0  # pixels differ only because the readout is drawn

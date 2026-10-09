@@ -141,7 +141,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     checks = camera_checks(pose)
     warnings.extend(camera_warnings(checks))
     try:
-        stats = render_video(video, pose, signals, analysis, out, warnings)
+        stats = render_video(video, pose, signals, analysis, out, warnings, elbow_source=args.source)
     except (ValueError, OSError) as e:
         raise SystemExit(f"error: {e}")
     if stats.frames < pose.num_frames:

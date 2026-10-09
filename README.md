@@ -49,7 +49,7 @@ frames. Re-run in seconds with `--keypoints out\result.keypoints.npz`. Other opt
 If a video will not open, re-export it as a standard H.264 `.mp4`.
 
 ## Reading the video
-Left: the person, a green skeleton and a dashed bar line. Top right: the rep counter. Side table: rep number,
+Left: the person, a green skeleton and a dashed bar line, and a live elbow readout at the bottom-left (labelled a model estimate; hidden on frames where the angle is not valid). Top right: the rep counter. Side table: rep number,
 head over the bar (yes/no), arms straight (yes/no/UNKNOWN), bottom elbow angle, pull time, verdict. Bottom: head
 height against the bar, with rep bands (green FULL, red NOT FULL, amber UNKNOWN). A red banner appears when many
 frames could not be tracked, or when the camera looks like a side view or the bar looks tilted.

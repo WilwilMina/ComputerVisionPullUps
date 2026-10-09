@@ -349,6 +349,30 @@ def banner_lines(warnings: list[str], width_px: int) -> list[str]:
     return lines
 
 
+def elbow_readout_text(signals: Signals, i: int, source: str = config.ELBOW_ANGLE_SOURCE) -> Optional[str]:
+    """Live elbow readout for frame i, or None (hidden) when the angle is not valid there.
+
+    Always labelled as an estimate: the 3D angle is the pose model's estimate (it reads ~145-155 deg on arms that
+    look nearly straight), and the 2D angle is a pixel angle that depends on the camera view.
+    """
+    v = signals.elbow_deg[i]
+    if not (bool(signals.elbow_valid[i]) and np.isfinite(v)):
+        return None
+    kind = "model estimate, 3D" if source == "world" else "2D pixel angle"
+    return f"elbow {v:.0f} deg ({kind})"
+
+
+def draw_elbow_readout(frame: np.ndarray, text: str) -> None:
+    import cv2
+
+    size = config.RENDER_ELBOW_READOUT_SIZE
+    (w, h), base = cv2.getTextSize(text, _font(), size, 1)
+    m = config.RENDER_ELBOW_READOUT_MARGIN_PX
+    x0, y1 = m, frame.shape[0] - m
+    cv2.rectangle(frame, (x0 - 4, y1 - h - 6), (x0 + w + 4, y1 + base), DARK, -1)
+    _text(frame, text, (x0, y1 - 2), size, WHITE)
+
+
 def draw_banner(frame: np.ndarray, lines: list[str]) -> None:
     """A red banner across the top of the video, one text line per row, so nothing is cut off at the edge."""
     import cv2
@@ -366,6 +390,7 @@ def render_video(
     analysis: RepAnalysis,
     out_path: str | Path,
     warnings: Optional[list[str]] = None,
+    elbow_source: str = config.ELBOW_ANGLE_SOURCE,
 ) -> RenderStats:
     """Write the annotated video; one output frame per pose frame. Raises ValueError if it cannot be read or written."""
     import cv2
@@ -399,6 +424,9 @@ def render_video(
         small = frame.copy() if frame.shape[:2] == (layout.vid_h, layout.vid_w) else cv2.resize(frame, (layout.vid_w, layout.vid_h))
         draw_bar_line(small, signals, i, frame_h, layout.scale)
         draw_skeleton(small, pose.keypoints[i], layout.scale)
+        readout = elbow_readout_text(signals, i, elbow_source)
+        if readout:
+            draw_elbow_readout(small, readout)
         if warnings:
             draw_banner(small, banner_lines(warnings, layout.vid_w))
 
