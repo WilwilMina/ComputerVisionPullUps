@@ -1,13 +1,22 @@
+import dataclasses
+
 import numpy as np
 from synthetic import SHOULDER_WIDTH, make_pose
 
 from pullup_rom import config
 from pullup_rom.eval_clips import bar_stability, elbow_range, head_spread, report_line
-from pullup_rom.metrics import compute_signals
+from pullup_rom.metrics import MetricsParams
+from pullup_rom.metrics import compute_signals as _compute_signals
 
 N = 300
 T = np.arange(N) / 30.0
 W = SHOULDER_WIDTH
+
+
+def compute_signals(pose, params=None):
+    """These tests probe the bar-line mechanics with the synthetic bar placed AT the wrists, so the measured
+    wrist-to-bar offset is switched off here. The offset itself is tested in test_bar_offset.py."""
+    return _compute_signals(pose, dataclasses.replace(params or MetricsParams(), bar_offset_body_scales=0.0))
 
 
 def _signals(bar_up, head_up=None, **kw):

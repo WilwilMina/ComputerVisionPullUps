@@ -42,7 +42,12 @@ BODY_SCALE_MODE = "shoulder_width"  # PROVISIONAL: "shoulder_width" | "torso" (m
 BODY_SCALE_WINDOW_S = 2.0  # PROVISIONAL, seconds; rolling median so pose changes don't move the scale
 BAR_WINDOW_S = 2.0  # PROVISIONAL, seconds; centred rolling-median window for the bar line
 BAR_MIN_CONFIDENT_SHARE = 0.25  # PROVISIONAL, 0..1; min share of the bar window with confident gripping wrists, else no bar value
-BAR_OFFSET_BODY_SCALES = 0.0  # PROVISIONAL; wrist-joint-to-bar-top offset, in body scales, to measure
+# Wrist-landmark-to-bar-CENTRE offset, in body scales (shoulder widths), bar above the wrist line. A GEOMETRY measurement, not tuned to
+# any label: the hands wrap over the bar, so the bar sits above the wrist landmark. Measured 2026-10-09 by reading the bar against a pixel
+# ruler on 22 frames of two clips, two people (pexels_6389831 mean 0.237, pexels_10336041 mean 0.218; pooled mean 0.228, sd 0.022, range
+# 0.191-0.266; readings good to about 2-5 px; see docs/PROGRESS.md). Rounded to 0.23. It is the bar's centre, not its top edge (the top
+# edge is about 0.06 higher); it differs a little per person and grip, so it is one estimate from two clips, not a constant of nature.
+BAR_OFFSET_BODY_SCALES = 0.23
 ELBOW_ANGLE_SOURCE = "world"  # PROVISIONAL: "world" (the model's estimated 3D angle) | "image" (2D pixels, depends on the camera view)
 ELBOW_ARM_COMBINE = "mean"  # PROVISIONAL: "mean" | "min" of the two arms
 

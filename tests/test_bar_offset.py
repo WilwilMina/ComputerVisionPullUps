@@ -92,3 +92,38 @@ def test_wrists_outside_the_image_write_no_crop_instead_of_crashing(tmp_path):
         w.write(np.full((360, 320, 3), 90, dtype=np.uint8))
     w.release()
     assert write_crops(video, pose, compute_signals(pose), tmp_path / "crops", 4) == []
+
+
+# ---------- the measured offset is APPLIED (geometry, not tuned to labels) ----------
+
+def test_the_configured_offset_is_inside_the_range_that_was_measured():
+    from pullup_rom import config
+
+    assert 0.191 <= config.BAR_OFFSET_BODY_SCALES <= 0.266  # min and max of the 22 hand readings on two clips
+
+
+def test_the_bar_line_sits_the_configured_offset_above_the_wrist_line():
+    import dataclasses
+
+    from pullup_rom import config
+    from pullup_rom.metrics import MetricsParams
+
+    pose, _ = _scene()
+    on = compute_signals(pose)  # default: the configured offset
+    off = compute_signals(pose, dataclasses.replace(MetricsParams(), bar_offset_body_scales=0.0))
+    scale = on.body_scale_px[N // 2]
+    rise_px = on.bar_height_px[N // 2] - off.bar_height_px[N // 2]  # height is up
+    assert abs(rise_px / scale - config.BAR_OFFSET_BODY_SCALES) < 1e-6
+
+
+def test_a_head_that_only_reaches_the_wrist_line_no_longer_counts_as_over_the_bar():
+    from synthetic import make_rep_series
+
+    from pullup_rom import config
+    from pullup_rom.reps import RepParams, detect_reps
+
+    head, elbow = make_rep_series(peaks=[0.1], valley_elbows=[165, 165])  # peak 0.1 body scales above the WRIST line
+    params = RepParams(dead_hang_elbow_min_deg=150.0)
+    before = detect_reps(head, elbow, 30.0, params).reps[0]
+    after = detect_reps(head - config.BAR_OFFSET_BODY_SCALES, elbow, 30.0, params).reps[0]  # same head, bar moved up to the real bar
+    assert before.head_ok and not after.head_ok and after.full is False

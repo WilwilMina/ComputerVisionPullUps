@@ -1,4 +1,4 @@
-"""Measure the wrist-to-bar offset from hand-read frames. Measurement only: the result is NOT applied anywhere.
+"""Measure the wrist-to-bar offset from hand-read frames. The measured result is applied through config.BAR_OFFSET_BODY_SCALES (this tool only measures).
 
 The pipeline's bar line is the wrist line, but the hands wrap over the bar, so the real bar sits a little above
 the wrist landmark. This tool picks frames where both wrists are confident and gripping, writes zoomed crops with a

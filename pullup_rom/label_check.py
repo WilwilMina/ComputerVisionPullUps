@@ -67,7 +67,7 @@ def verdict_text(full: Optional[bool]) -> str:
 def head_minus_bar_by_group(pose: PoseResult, signals: Signals, frame: int) -> dict[str, tuple[Optional[float], float]]:
     """Per head-landmark group: (height over the bar in body scales, median confidence), around `frame`.
 
-    The bar is the pipeline's own bar line (the wrist line, no offset applied). A group needs every landmark in it
+    The bar is the pipeline's own bar line (the wrist line plus the configured BAR_OFFSET_BODY_SCALES, i.e. the bar centre). A group needs every landmark in it
     to be confident; the value is the median over the peak frame +/- TOP_HALF_WINDOW_FRAMES.
     """
     lo, hi = max(0, frame - TOP_HALF_WINDOW_FRAMES), min(pose.num_frames, frame + TOP_HALF_WINDOW_FRAMES + 1)
@@ -132,7 +132,7 @@ def build_report(labels: dict, pose: PoseResult, source: str = config.ELBOW_ANGL
                 f"(first, starts from the first grab) is {'THE LOWEST' if low.index == first.index else 'not the lowest'}"
                 f"{'' if len(tie) <= 1 else f' (within 0.5 deg of reps {tie})'}  [{values}]"
             )
-    lines += ["", "2. Head over the bar at the top, per head landmark (body scales; the bar is the wrist line, no offset applied)",
+    lines += ["", "2. Head over the bar at the top, per head landmark (body scales; the bar is the wrist line plus the configured offset, i.e. the bar centre)",
               "  rep   nose           mouth          eyes           ears        (value / confidence)"]
     per_group: dict[str, list[float]] = {k: [] for k in HEAD_GROUPS}
     for lab, rep in pairs:
