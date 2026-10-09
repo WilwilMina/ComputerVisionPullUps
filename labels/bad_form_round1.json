@@ -1,0 +1,299 @@
+{
+  "round": "bad_form_round_1",
+  "status": "CONFIRMED by the project owner on 2026-10-09 with the changes listed in 'owner_changes'. Written BEFORE any pipeline verdict was computed on these clips.",
+  "labelled_by": "Labels were drafted by AI agents (clip-evaluator) from video frames, with human spot checks only where noted in a rep's notes. No rep has a human spot check unless it says so.",
+  "labelled_on": "2026-10-09",
+  "time_accuracy_s": 0.3,
+  "label_classes": {
+    "FULL": "arms near-straight at the bottom and chin reaches/passes the bar",
+    "SHORT_BOTTOM": "arms never straighten at the bottom",
+    "NOT_HIGH": "chin short of the bar at the top",
+    "SHORT_BOTH": "both faults",
+    "UNCLEAR": "cannot tell from the footage"
+  },
+  "split_rule": "Split by clip, not by rep. New clips are sorted by ascending Pexels ID and alternate held_out, calibration, held_out, calibration. The rule uses no label or video content. NOTE: it was written after the labels were drafted (the labels were seen first), so it is mechanical but not blind. The two earlier user-labelled clips (pexels_10336041, pexels_6389831; labels in data/labels/, all reps FULL) are calibration by definition: they already set the 3D dead-hang threshold.",
+  "held_out_rule": "Held-out clips never inform any threshold, offset, landmark choice or margin.",
+  "assignment": {
+    "calibration": [
+      "pexels_10336041",
+      "pexels_6389831",
+      "pexels_10039581",
+      "pexels_15859716"
+    ],
+    "held_out": [
+      "pexels_7187450",
+      "pexels_14284164"
+    ]
+  },
+  "clips": [
+    {
+      "clip": "pexels_7187450",
+      "set": "held_out",
+      "people": 1,
+      "notes": "9 rep tops. Clip starts mid-descent of an earlier rep (cut off, not counted). Reps 1-6 are continuous (no pause between reps); long dead hang 11.3-13.4 s before rep 7. Judged from contact sheets at 8 fps and full-res crops at 3 frames around each bottom and top; no tracking output used. Bottom straightness is judged from a front/oblique view so elbow angle is foreshortened; all bottoms look near-straight, rep 7 clearly straight. From rep 6 on the camera is frontal and the fists cover the chin at the top, so top labels there are low confidence.",
+      "reps": [
+        {
+          "index": 1,
+          "bottom_s": 0.5,
+          "top_s": 1.25,
+          "label": "FULL",
+          "style": "unsure",
+          "confidence": "medium",
+          "notes": "Arms near-straight (slight elbow flex, shoulders shrugged) at bottom; chin at/just above bar at top. Oblique view. First rep in clip; previous rep's top is cut off at 0.0 s. body/leg swing in rhythm with continuous no-pause reps, but cannot confirm deliberate leg drive"
+        },
+        {
+          "index": 2,
+          "bottom_s": 2.1,
+          "top_s": 2.85,
+          "label": "FULL",
+          "style": "unsure",
+          "confidence": "medium",
+          "notes": "Bottom arms near-straight (slight flex); chin at bar/just above at top. body/leg swing in rhythm with continuous no-pause reps, but cannot confirm deliberate leg drive"
+        },
+        {
+          "index": 3,
+          "bottom_s": 3.75,
+          "top_s": 4.55,
+          "label": "FULL",
+          "style": "unsure",
+          "confidence": "medium",
+          "notes": "Bottom near-straight; chin on/above bar at 4.45-4.6 s (face clearly visible). body/leg swing in rhythm with continuous no-pause reps, but cannot confirm deliberate leg drive"
+        },
+        {
+          "index": 4,
+          "bottom_s": 5.6,
+          "top_s": 6.5,
+          "label": "FULL",
+          "style": "unsure",
+          "confidence": "medium",
+          "notes": "Bottom near-straight; chin at bar level at top. body/leg swing in rhythm with continuous no-pause reps, but cannot confirm deliberate leg drive"
+        },
+        {
+          "index": 5,
+          "bottom_s": 7.4,
+          "top_s": 8.3,
+          "label": "FULL",
+          "style": "unsure",
+          "confidence": "medium",
+          "notes": "Bottom near-straight; chin at bar level at 8.3 s. body/leg swing in rhythm with continuous no-pause reps, but cannot confirm deliberate leg drive"
+        },
+        {
+          "index": 6,
+          "bottom_s": 9.4,
+          "top_s": 10.3,
+          "label": "UNCLEAR",
+          "style": "unsure",
+          "confidence": "low",
+          "notes": "Bottom near-straight. Top is now frontal and fists hide the chin; eyes/forehead above bar, chin probably at bar but not visible. Could be UNCLEAR on the top. | set to UNCLEAR by the project owner (low-confidence agent draft: FULL)",
+          "agent_draft_label": "FULL"
+        },
+        {
+          "index": 7,
+          "bottom_s": 12.5,
+          "top_s": 14.2,
+          "label": "UNCLEAR",
+          "style": "normal",
+          "confidence": "low",
+          "notes": "Preceded by ~2 s dead hang (11.3-13.4 s): arms fully straight, clearest bottom in clip. Top: eyes clearly above bar, chin hidden behind fists, probably at bar. Slight knee lift at 14.0 s. | set to UNCLEAR by the project owner (low-confidence agent draft: FULL)",
+          "agent_draft_label": "FULL"
+        },
+        {
+          "index": 8,
+          "bottom_s": 15.4,
+          "top_s": 16.2,
+          "label": "UNCLEAR",
+          "style": "normal",
+          "confidence": "low",
+          "notes": "Bottom arms straight, head tilted back. Top: fists hide the face; hairline just above bar, eyes about at bar line, so chin appears to stay below the bar. Low confidence because chin is not visible. | set to UNCLEAR by the project owner (low-confidence agent draft: NOT_HIGH)",
+          "agent_draft_label": "NOT_HIGH"
+        },
+        {
+          "index": 9,
+          "bottom_s": 17.4,
+          "top_s": 18.1,
+          "label": "UNCLEAR",
+          "style": "normal",
+          "confidence": "low",
+          "notes": "Bottom arms straight. Top: head top only slightly above bar, eyes/chin behind fists below bar line. Low confidence because chin is not visible. Clip ends in dead hang at 19.0-19.4 s. | set to UNCLEAR by the project owner (low-confidence agent draft: NOT_HIGH)",
+          "agent_draft_label": "NOT_HIGH"
+        }
+      ],
+      "excluded_from_scoring": false
+    },
+    {
+      "clip": "pexels_10039581",
+      "set": "calibration",
+      "people": 3,
+      "notes": "A rep IS performed: two assisted reps (spotter supports legs/hips, so some assistance is likely) with straight-arm bottoms and head above the bar line at the top, followed by a long bent-arm top hold with leg swinging and a slow lowering to a straight-arm hang by ~9.2 s. Chin cannot be seen (back view); judged from head/neck position relative to the bar line, so tops are medium confidence at best. Other people: spotter (front/right, supports legs until ~3.3 s then stands beside/beyond the rig), a distant person in the background on a treadmill area, and a hand/arm and chair edge from the spotter near the right edge from ~6 s. No frames were extracted from detector output or keypoint caches; labels are from visual inspection only. Scratch images: data/labels/draft/pexels_10039581/*.jpg.",
+      "reps": [
+        {
+          "index": 1,
+          "bottom_s": 0.85,
+          "top_s": 1.65,
+          "label": "FULL",
+          "style": "normal",
+          "assisted": true,
+          "confidence": "medium",
+          "notes": "Bottom (0.75-1.0 s): arms near fully straight overhead. Top (1.5-1.75 s): head is above the hands and the bar line passes at the neck/jaw; seen from behind so chin vs bar cannot be seen directly, hence medium. Spotter holds her legs/hips throughout. Clip starts at the top of a prior rep (0.0 s, head at bar) whose ascent is not in the clip; not counted."
+        },
+        {
+          "index": 2,
+          "bottom_s": 2.4,
+          "top_s": 3.1,
+          "label": "FULL",
+          "style": "normal",
+          "assisted": true,
+          "confidence": "medium",
+          "notes": "Bottom (2.25-2.5 s): arms straight, clearest hang in the clip. Top (3.0-3.25 s): head above the bar line, neck at bar level, chin not directly visible from behind. Spotter still holding legs at 3.0 s, lets go ~3.3 s."
+        },
+        {
+          "index": 3,
+          "bottom_s": 9.2,
+          "top_s": 3.5,
+          "label": "UNCLEAR",
+          "style": "unsure",
+          "assisted": true,
+          "confidence": "low",
+          "notes": "Not a clean rep: she stays at the top with bent elbows and head at bar level from ~3.4 to ~8.0 s while the legs swing/tuck (leg swing, no re-extension of the arms), spotter releases her legs at ~3.3 s and walks out of frame. She then lowers slowly 8.0-9.0 s and reaches straight arms at ~9.2 s. Top and bottom conditions are both met at the ends (bottom 2.4 s straight, head at bar 3.5-8.0 s, straight at 9.2 s), but the 4.5 s hold is better described as one long top hold; a rep counter may split it or count it once. Treat as ambiguous. | set to UNCLEAR by the project owner (low-confidence agent draft: FULL)",
+          "agent_draft_label": "FULL"
+        }
+      ],
+      "excluded_from_scoring": true,
+      "exclusion_reason": "multi-person (3 people) and assisted by a spotter"
+    },
+    {
+      "clip": "pexels_14284164",
+      "set": "held_out",
+      "people": 1,
+      "notes": "Eight kipping cycles of roughly 2.1 s each, same pattern every time: hang with arms near-straight and legs below, then a leg swing forward while pulling, chin at the bar with body diagonal, then drop. Chin/bar relation is hard to judge exactly from the oblique angle (bar passes in front of chin), so FULL labels are medium confidence. First rep starts at clip start, last rep is cut off by the end of the clip. A few passers-by/cyclists in the far background only.",
+      "reps": [
+        {
+          "index": 1,
+          "bottom_s": 0.1,
+          "top_s": 0.93,
+          "label": "FULL",
+          "style": "kipping",
+          "confidence": "medium",
+          "notes": "Starts at t=0 just after jumping/pulling onto the bar; bottom frame is the first frames of the clip. Bottom: arms near-straight overhead (oblique view, slight elbow flex cannot be excluded). Top: chin at/over bar line, head beside/behind bar. Visible leg drive and body swing (legs swing forward at top)."
+        },
+        {
+          "index": 2,
+          "bottom_s": 1.9,
+          "top_s": 2.8,
+          "label": "FULL",
+          "style": "kipping",
+          "confidence": "medium",
+          "notes": "Bottom: arms near-straight overhead (oblique view, slight elbow flex cannot be excluded). Top: chin at/over bar line, head beside/behind bar. Visible leg drive and body swing (legs swing forward at top)."
+        },
+        {
+          "index": 3,
+          "bottom_s": 4.0,
+          "top_s": 5.1,
+          "label": "FULL",
+          "style": "kipping",
+          "confidence": "medium",
+          "notes": "Bottom: arms near-straight overhead (oblique view, slight elbow flex cannot be excluded). Top: chin at/over bar line, head beside/behind bar. Visible leg drive and body swing (legs swing forward at top)."
+        },
+        {
+          "index": 4,
+          "bottom_s": 6.0,
+          "top_s": 7.4,
+          "label": "FULL",
+          "style": "kipping",
+          "confidence": "medium",
+          "notes": "Bottom: arms near-straight overhead (oblique view, slight elbow flex cannot be excluded). Top: chin at/over bar line, head beside/behind bar. Visible leg drive and body swing (legs swing forward at top)."
+        },
+        {
+          "index": 5,
+          "bottom_s": 8.3,
+          "top_s": 9.6,
+          "label": "FULL",
+          "style": "kipping",
+          "confidence": "medium",
+          "notes": "Bottom: arms near-straight overhead (oblique view, slight elbow flex cannot be excluded). Top: chin at/over bar line, head beside/behind bar. Visible leg drive and body swing (legs swing forward at top)."
+        },
+        {
+          "index": 6,
+          "bottom_s": 10.6,
+          "top_s": 12.0,
+          "label": "FULL",
+          "style": "kipping",
+          "confidence": "medium",
+          "notes": "Bottom: arms near-straight overhead (oblique view, slight elbow flex cannot be excluded). Top: chin at/over bar line, head beside/behind bar. Visible leg drive and body swing (legs swing forward at top)."
+        },
+        {
+          "index": 7,
+          "bottom_s": 12.9,
+          "top_s": 14.3,
+          "label": "FULL",
+          "style": "kipping",
+          "confidence": "medium",
+          "notes": "Bottom: arms near-straight overhead (oblique view, slight elbow flex cannot be excluded). Top: chin at/over bar line, head beside/behind bar. Visible leg drive and body swing (legs swing forward at top)."
+        },
+        {
+          "index": 8,
+          "bottom_s": 15.2,
+          "top_s": 16.15,
+          "label": "UNCLEAR",
+          "style": "kipping",
+          "confidence": "low",
+          "notes": "Clip ends (16.2 s) while the body is rising; chin at about bar level in the last frames but peak not seen, so top cannot be judged. Bottom (15.2 s) arms near-straight. Kipping."
+        }
+      ],
+      "excluded_from_scoring": true,
+      "exclusion_reason": "unsupported style: kipping (all reps)"
+    },
+    {
+      "clip": "pexels_15859716",
+      "set": "calibration",
+      "people": 1,
+      "notes": "4 reps, all labelled FULL at medium confidence. Two caveats: (1) back view, so the chin cannot be seen; top is judged from the whole head sitting above the handle line, which is a large margin in every top. (2) The final hang at f276-f282 (9.2-9.4 s, after rep 4) shows visibly straighter arms than the mid-clip bottoms, which retain a slight elbow bend (roughly 10-20 degrees, estimated by eye, not measured), so the bottom-extension call is the uncertain part. No failed attempts, no occlusion, one person, bar fully visible. Clip ends in a hang after rep 4 (no extra rep). Rep timing about 2.3 s per rep.",
+      "reps": [
+        {
+          "index": 1,
+          "bottom_s": 0.1,
+          "top_s": 1.0,
+          "label": "FULL",
+          "style": "normal",
+          "confidence": "medium",
+          "notes": "Clip starts at/near the bottom (f0 arms near-straight, slightly bent, head still low) so the rep start is at the clip edge. Top f24-f36: whole head clearly above the handles; chin not directly visible from behind, judged from head and nape being above the bar line. Arms near-straight but not fully locked at the bottom."
+        },
+        {
+          "index": 2,
+          "bottom_s": 2.3,
+          "top_s": 3.4,
+          "label": "FULL",
+          "style": "normal",
+          "confidence": "medium",
+          "notes": "Bottom f60-f76 (about 2.0-2.5 s): arms near-straight with slight elbow bend and shrugged shoulders (active hang). Top f96-f110: head fully above the bar, forearms near the bar. Legs slightly bent behind at the top, no visible leg drive or swing."
+        },
+        {
+          "index": 3,
+          "bottom_s": 4.6,
+          "top_s": 5.75,
+          "label": "FULL",
+          "style": "normal",
+          "confidence": "medium",
+          "notes": "Same appearance as rep 2: bottom f132-f148 near-straight arms with slight bend; top f166-f178 head fully above the bar."
+        },
+        {
+          "index": 4,
+          "bottom_s": 7.2,
+          "top_s": 8.3,
+          "label": "FULL",
+          "style": "normal",
+          "confidence": "medium",
+          "notes": "Bottom f204-f228 (about 6.8-7.6 s) near-straight arms, slight bend; top f242-f254 head fully above the bar."
+        }
+      ],
+      "excluded_from_scoring": false
+    }
+  ],
+  "owner_changes": [
+    "pexels_7187450 reps 6-9 set to UNCLEAR (agent drafted FULL, FULL, NOT_HIGH, NOT_HIGH at low confidence); they stay UNCLEAR unless the owner says they watched them and could tell.",
+    "pexels_10039581 rep 3 set to UNCLEAR (agent drafted FULL, low confidence; one long top hold).",
+    "pexels_10039581 marked multi-person/assisted and pexels_14284164 marked unsupported style (kipping): both excluded from every range-of-motion count and from every calibration / held-out figure. They are run only to see whether the tool warns, breaks or gives confident wrong verdicts.",
+    "The split is kept as assigned; no clip moves after seeing labels."
+  ],
+  "scoring_rules": "UNCLEAR reps are excluded from all scoring. Clips with excluded_from_scoring=true contribute nothing to any range-of-motion count, calibration or held-out figure."
+}
