@@ -89,7 +89,10 @@ class Rep:
 
     @property
     def pull_time_s(self) -> Optional[float]:
-        """Bottom to top and back to the bottom; None when the clip ended before the head came back down."""
+        """Bottom to top and back to the bottom; None when the clip ended before the head came back down.
+
+        Information only: it is never part of a verdict (this tool judges range of motion, not speed or tempo).
+        """
         return None if self.clipped else self.end_s - self.start_s
 
 

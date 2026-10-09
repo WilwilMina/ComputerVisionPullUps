@@ -318,3 +318,29 @@ def test_bottom_window_lengths_are_reported_per_rep():
     assert 25 <= r.start_window_frames <= 40 and 25 <= r.end_window_frames <= 40  # about 1 s at 30 fps
     clipped = run(head[: int(np.argmax(head)) + 5], elbow[: int(np.argmax(head)) + 5]).reps[0]
     assert clipped.start_window_frames > 0 and clipped.end_window_frames == 0
+
+
+# ---------- pull time is information, never part of the verdict ----------
+
+@pytest.mark.parametrize("up_s,hold_s,down_s", [(0.5, 0.1, 0.5), (1.0, 0.3, 1.2), (4.0, 1.0, 4.0)])
+@pytest.mark.parametrize(
+    "peak,valleys,expected",
+    [
+        (0.4, [165, 165], True),  # head clears, arms extended
+        (0.4, [165, 120], False),  # head clears, bent elbow at the bottom
+        (-0.2, [165, 165], False),  # arms extended, head short of the bar
+    ],
+)
+def test_only_the_timing_changes_and_the_verdict_does_not(up_s, hold_s, down_s, peak, valleys, expected):
+    head, elbow = make_rep_series(peaks=[peak], valley_elbows=valleys, up_s=up_s, hold_s=hold_s, down_s=down_s)
+    reps = run(head, elbow).reps
+    assert [r.full for r in reps] == [expected]
+    assert not any("time" in reason or "slow" in reason or "fast" in reason for r in reps for reason in r.reasons)
+
+
+def test_a_slow_and_a_fast_rep_in_one_clip_get_the_same_verdict_with_different_pull_times():
+    slow = make_rep_series(peaks=[0.4], valley_elbows=[165, 165], up_s=4.0, down_s=4.0)
+    fast = make_rep_series(peaks=[0.4], valley_elbows=[165, 165], up_s=0.5, down_s=0.5)
+    rs, rf = run(*slow).reps[0], run(*fast).reps[0]
+    assert rs.full is rf.full is True
+    assert rs.pull_time_s > 3 * rf.pull_time_s

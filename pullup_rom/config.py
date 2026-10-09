@@ -64,7 +64,7 @@ REP_START_RISE_BODY_SCALES = 0.25  # PROVISIONAL; head must rise this far above 
 REP_END_DROP_BODY_SCALES = 0.25  # PROVISIONAL; head must fall this far below the rep's peak to end the ascent
 REP_DEBOUNCE_S = 0.1  # PROVISIONAL, seconds; a rise/fall must hold this long before the state changes
 REP_BOTTOM_BAND_BODY_SCALES = 0.15  # PROVISIONAL; frames within this of a valley's lowest head height form its "bottom"
-REP_MIN_ASCENT_S = 0.3  # PROVISIONAL, seconds; start-to-peak shorter than this is a tracking glitch, not a rep (discarded, listed)
+REP_MIN_ASCENT_S = 0.3  # PROVISIONAL, seconds; start-to-peak shorter than this is a tracking glitch, not a rep (discarded, listed). Not a form judgement
 REP_MAX_GAP_S = 0.5  # PROVISIONAL, seconds; a missing-data gap longer than this mid-rep discards that attempt
 
 # --- Rendering and CLI (slice 4) ---

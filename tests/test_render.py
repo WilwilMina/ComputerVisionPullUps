@@ -375,3 +375,14 @@ def test_every_warning_is_drawn_on_a_narrow_video(tmp_path):
     cap.release()
     last_row = 8 + len(lines) * config.RENDER_BANNER_LINE_H_PX - 6
     assert ok and frame[last_row : last_row + 3, 2:6].reshape(-1, 3).mean(axis=0)[2] > 120  # the banner reaches its last line
+
+
+def test_pull_time_is_shown_as_information_and_does_not_change_the_verdict_row():
+    def row(up_s, down_s):
+        head, elbow = make_rep_series(peaks=[0.4], valley_elbows=[165, 165], up_s=up_s, down_s=down_s)
+        return rep_row(detect_reps(head, elbow, FPS, RepParams.for_source("world", dead_hang_elbow_min_deg=150.0)).reps[0])
+
+    fast, slow = row(0.5, 0.5), row(4.0, 4.0)
+    assert fast.pull_time != slow.pull_time
+    assert (fast.head_cleared, fast.arms_straight, fast.verdict) == (slow.head_cleared, slow.arms_straight, slow.verdict) == ("yes", "yes", "FULL")
+    assert verdict_color(fast.verdict) == verdict_color(slow.verdict)

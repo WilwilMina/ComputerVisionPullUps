@@ -21,6 +21,9 @@ repository makes **no accuracy claims**: nothing has been validated on held-out,
   A failed head check is NOT FULL. If the angle source has no calibrated threshold (currently the 2D angle), or the clip ends
   before the arms come back down, a rep that clears the bar is UNKNOWN.
   The elbow angle at the top of a rep is never used.
+- **Range of motion only, not speed or tempo.** Pull time is shown in the table for information. It never changes a
+  verdict or a colour. The only timing rule is a tracking filter: a movement whose rise lasts under
+  `REP_MIN_ASCENT_S` is discarded as a glitch (and listed), not judged as a fast rep.
 - Reps the tool cannot trust (tracking gaps) are listed as "uncertain", never silently dropped.
 
 ## Install
