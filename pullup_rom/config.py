@@ -49,10 +49,16 @@ ELBOW_ARM_COMBINE = "mean"  # PROVISIONAL: "mean" | "min" of the two arms
 # --- Rep logic (slice 3) ---
 # ALL PROVISIONAL placeholders, none derived from footage yet (see docs/PROGRESS.md).
 HEAD_CLEAR_MARGIN_BODY_SCALES = 0.0  # PROVISIONAL; head_minus_bar must reach this at the top. 0 = nose at the wrist line; BlazePose has no chin
-# Dead-hang elbow angle (deg) a rep's bottom must reach, PER ANGLE SOURCE. Deliberately UNSET: the 3D and 2D angles
-# read very differently (3D never exceeded 171 deg on the dev clips), so each needs its own value calibrated on
-# labelled footage. While None, a rep that clears the bar is reported as UNCALIBRATED, not FULL/NOT FULL.
-DEAD_HANG_ELBOW_MIN_DEG: dict[str, "float | None"] = {"world": None, "image": None}
+# Dead-hang elbow angle (deg) a rep's bottom must reach, PER ANGLE SOURCE (a rep passes at or above it).
+# "world" (3D): 144.0, calibrated on 2026-10-09 from the user's labels: every rep in pexels_10336041 and
+#   pexels_6389831 is a full-ROM rep. The 13 complete reps there have bottom angles 144.86 to 154.60 deg (3D);
+#   144.0 is the lowest whole degree at or below all of them, i.e. the strictest value that keeps every
+#   labelled rep FULL. ONE-SIDED: there were no bent-elbow examples, so it says nothing about where bent starts,
+#   it only cannot be set higher. Two clips, two people. Re-derive with labelled bad reps and a held-out clip.
+# "image" (2D): left unset. The same reps read 129.9 to 161.3 deg in 2D (the two clips differ by about 25 deg
+#   because the 2D angle depends on the camera view), so no 2D value can be set from this data.
+# A rep that clears the bar while its source has no threshold is reported UNKNOWN, never guessed.
+DEAD_HANG_ELBOW_MIN_DEG: dict[str, "float | None"] = {"world": 144.0, "image": None}
 REP_START_RISE_BODY_SCALES = 0.25  # PROVISIONAL; head must rise this far above its running bottom to start a rep
 REP_END_DROP_BODY_SCALES = 0.25  # PROVISIONAL; head must fall this far below the rep's peak to end the ascent
 REP_DEBOUNCE_S = 0.1  # PROVISIONAL, seconds; a rise/fall must hold this long before the state changes

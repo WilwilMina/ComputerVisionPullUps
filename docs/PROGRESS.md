@@ -3,7 +3,7 @@
 Source of truth for project state across sessions. Conversation resume is unreliable, so update this at the end of each session.
 
 ## Status
-Slices 1 (pose), 2 (metrics), 3 (rep state machine) and 4 (overlay video + CLI) are built and tested on synthetic data. Slices 1-3 are committed locally (4 commits, never pushed by Claude; the user pushes). Slice 4 passed `qa` after fixes and is committed locally; the user checks it and pushes. Slices 1-2 have been run on 9 stock dev clips of different people (tracking diagnostics only, no ground truth). No footage of the user yet, so every setting is a placeholder and no rep is labelled FULL on elbow grounds (dead-hang threshold unset): reps that clear the bar show UNKNOWN.
+Slices 1 (pose), 2 (metrics), 3 (rep state machine) and 4 (overlay video + CLI) are built and tested on synthetic data. Slices 1-3 are committed locally (4 commits, never pushed by Claude; the user pushes). Slice 4 passed `qa` after fixes and is committed locally; the user checks it and pushes. Slices 1-2 have been run on 9 stock dev clips of different people (tracking diagnostics only, no ground truth). The only calibration so far (2026-10-09): the 3D dead-hang elbow threshold, 144 deg, from the user's labels (all reps in `pexels_10336041` and `pexels_6389831` are full ROM). It is one-sided (no bent-elbow examples), set on two clips and not validated; the 2D threshold is unset, so `--source image` reps that clear the bar show UNKNOWN.
 
 ## Done
 - Workspace set up per `docs/reference/` guide: `CLAUDE.md`, 2 rules, `qa` and `researcher` agents, one test hook, `.gitignore`, `requirements.txt`.
@@ -60,7 +60,7 @@ Slices 1 (pose), 2 (metrics), 3 (rep state machine) and 4 (overlay video + CLI) 
 - Elbow source: at the hang, 3D reads about 141-165 deg and 2D about 150-178 deg; 3D never exceeded 171 deg on any clip. At the top of a rep 2D collapses to about 0-40 deg while 3D stays higher. Thresholds must be calibrated per source.
 - Recommended camera setup (from these clips): fixed tripod, back or front view (not side), whole body and bar in frame, bar level, person not tiny, even light, nothing in front of the bar, no backlight.
 
-### Reps printed on the dev clips (final code, 3D source, dead-hang threshold unset so no rep is FULL; not accuracy)
+### Reps printed on the dev clips (3D source, threshold unset at the time, so no rep was FULL; superseded by the calibration section below; not accuracy)
 | clip | reps printed | bottom elbow 3D (deg, median) | notes |
 |---|---|---|---|
 | 10336041 | 10 | 145-155; #10: 95 | #1 is a small bump below the bar; #10 is a long top-hold (peak +0.29), not a clean rep |
@@ -74,9 +74,19 @@ Slices 1 (pose), 2 (metrics), 3 (rep state machine) and 4 (overlay video + CLI) 
 | 8233829 | 0 (2 discarded) | none | side view, slanted bar |
 The highest bottom elbow angle printed on any clip is 167 deg (3D); none reaches 171, let alone 180. Every rep that clears the bar shows UNKNOWN until the per-source dead-hang threshold is calibrated.
 
+## Calibration (2026-10-09), first and only one
+- **What the user said:** every rep in `pexels_10336041` and `pexels_6389831` is a full-ROM rep (their label; the project has no other ground truth).
+- **Elbow, 3D (`world`):** the 13 complete reps in those clips have bottom elbow angles 144.86 to 154.60 deg. `DEAD_HANG_ELBOW_MIN_DEG["world"] = 144.0`, the lowest whole degree at or below all of them: the strictest value that keeps every labelled rep FULL. One-sided: no bent-elbow examples exist, so it cannot say where a bent elbow begins. Two clips, two people.
+- **Elbow, 2D (`image`):** the same reps read 129.9 to 161.3 deg (the two clips differ by about 25 deg: the 2D angle depends on the camera view), so no 2D value can be set; it stays unset.
+- **Head margin:** unchanged (0.0). Rep 1 of `pexels_10336041` peaks at -0.55 body scales (head below the bar; frames show his head below his hands), so it is NOT FULL on the head check despite the label. The user's "all full" and the measured head height disagree on that one rep; the rep was kept for the elbow range only. `pexels_6389831` rep 4 is cut off by the end of the clip and was left out of the range.
+- **Effect on the labelled clips:** `10336041` gives 9 FULL and 1 NOT FULL (rep 1, head); `6389831` gives 3 FULL and 1 UNKNOWN (rep 4, clip ended mid-rep).
+- **Effect on the other clips (not accuracy, no labels):** `4964660` 3 FULL, `14293451` 3 FULL, `26586395` 3 NOT FULL on arms (bottoms about 136-141), `wikimedia` 2 NOT FULL on arms, `7672115` 2 FULL and 3 NOT FULL on arms, `35585615` mixed, `38226256` and `8233829` no reps. Whether those arm failures are bent elbows or just a lower 3D reading for that person and view is unknown. That is the main risk of a threshold set on two clips.
+- **Rule added:** a rep the clip cuts off mid-rep is UNKNOWN, never FULL, because the return to dead hang was never seen.
+- **Needed next:** labelled bent-elbow and chin-short reps to bound the threshold from the other side, then a held-out clip.
+
 ## PROVISIONAL (placeholders, not calibrated; all in `config.py`, marked)
 Metrics: `MIN_LANDMARK_CONFIDENCE`, `MAX_GAP_S`, `SMOOTH_WINDOW_S`, `SMOOTH_POLYORDER`, `HEAD_LANDMARKS` (nose), `BODY_SCALE_MODE`, `BODY_SCALE_WINDOW_S`, `BAR_WINDOW_S`, `BAR_MIN_CONFIDENT_SHARE` (0.25), `BAR_OFFSET_BODY_SCALES` (0.0), `ELBOW_ANGLE_SOURCE` (world), `ELBOW_ARM_COMBINE` (mean). Slice 4: `WARN_INVALID_SHARE` (0.30). Layout constants (`RENDER_*`) are pixel sizes, not thresholds.
-Reps: `HEAD_CLEAR_MARGIN_BODY_SCALES` (0.0), `REP_START_RISE_BODY_SCALES`, `REP_END_DROP_BODY_SCALES`, `REP_DEBOUNCE_S`, `REP_BOTTOM_BAND_BODY_SCALES`, `REP_MIN_ASCENT_S`, `REP_MAX_GAP_S`. `DEAD_HANG_ELBOW_MIN_DEG` is deliberately unset for both sources.
+Reps: `HEAD_CLEAR_MARGIN_BODY_SCALES` (0.0), `REP_START_RISE_BODY_SCALES`, `REP_END_DROP_BODY_SCALES`, `REP_DEBOUNCE_S`, `REP_BOTTOM_BAND_BODY_SCALES`, `REP_MIN_ASCENT_S`, `REP_MAX_GAP_S`. `DEAD_HANG_ELBOW_MIN_DEG` is calibrated for `world` only (144.0, one-sided, two clips; see Calibration) and unset for `image`.
 None of these may appear in the README as chosen values.
 
 ## Known limitations

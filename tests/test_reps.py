@@ -148,13 +148,18 @@ def test_the_elbow_angle_at_the_top_of_a_rep_is_ignored():
         assert r.full == base.full and r.bottom_elbow_deg == base.bottom_elbow_deg
 
 
-def test_no_fixed_dead_hang_value_exists_in_config_or_defaults():
-    assert config.DEAD_HANG_ELBOW_MIN_DEG == {"world": None, "image": None}
-    assert RepParams().dead_hang_elbow_min_deg is None
-    assert RepParams.for_source("world").dead_hang_elbow_min_deg is None
+def test_dead_hang_threshold_is_per_source_never_a_near_180_constant_and_unset_means_unknown():
+    world, image = config.DEAD_HANG_ELBOW_MIN_DEG["world"], config.DEAD_HANG_ELBOW_MIN_DEG["image"]
+    assert world is not None and world < 170  # calibrated from labelled reps; 3D readings never reach 180
+    assert image is None  # the 2D angle depends on the camera view, so it stays unset until it can be calibrated
+    assert RepParams().dead_hang_elbow_min_deg is None  # no source, no threshold
+    assert RepParams.for_source("world").dead_hang_elbow_min_deg == world
+    assert RepParams.for_source("image").dead_hang_elbow_min_deg is None
     assert RepParams.for_source("image", dead_hang_elbow_min_deg=150.0).dead_hang_elbow_min_deg == 150.0
     with pytest.raises(ValueError):
         RepParams.for_source("lidar")
+    head, elbow = make_rep_series(peaks=[0.4], valley_elbows=[165, 165])
+    assert run(head, elbow, RepParams.for_source("image")).reps[0].full is None  # unset source: UNKNOWN, never a guess
 
 
 def test_uncalibrated_threshold_reports_unknown_for_a_rep_that_clears_the_bar():
@@ -297,3 +302,11 @@ def test_pull_time_is_bottom_to_top_to_bottom_and_none_for_a_clipped_rep():
     assert 2.0 < r.pull_time_s < 2.8 and 0.7 < r.ascent_s < 1.2
     cut = run(head[: int(np.argmax(head)) + 5], elbow[: int(np.argmax(head)) + 5]).reps[0]
     assert cut.pull_time_s is None and cut.ascent_s > 0
+
+
+def test_a_rep_cut_off_by_the_end_of_the_clip_is_unknown_not_full():
+    head, elbow = make_rep_series(peaks=[0.4], valley_elbows=[165, 165])
+    peak = int(np.argmax(head))
+    cut = run(head[: peak + 5], elbow[: peak + 5]).reps[0]  # threshold set, head cleared, start bottom fine
+    assert cut.clipped and cut.head_ok and cut.elbow_ok is None and cut.full is None
+    assert REASON_CLIP_ENDED_MID_REP in cut.reasons

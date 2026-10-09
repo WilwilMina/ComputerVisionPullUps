@@ -275,6 +275,8 @@ def detect_reps(
         if p.dead_hang_elbow_min_deg is None:
             elbow_ok = None
             reasons.append(REASON_ELBOW_UNCALIBRATED)
+        elif r["clipped"]:
+            elbow_ok = None  # the clip ended before the arms came back down: the return to dead hang was never seen
         elif not np.isfinite(bottom):
             elbow_ok = None
             reasons.append(REASON_ELBOW_MISSING)

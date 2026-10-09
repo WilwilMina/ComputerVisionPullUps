@@ -4,11 +4,12 @@ Takes a video of someone doing pull-ups, counts the reps, and checks each one fo
 did the head clear the bar, and did the arms get back to a dead hang. It writes an annotated video (skeleton,
 rep counter, head-height graph, per-rep table) and a JSON summary.
 
-**Status: work in progress.** Every threshold is a provisional placeholder in `pullup_rom/config.py`. The
-dead-hang elbow threshold is deliberately unset until it is calibrated on labelled footage, so the "arms
-straight" check and the FULL verdict show **UNKNOWN**. The head-over-bar check and the bottom elbow angle per
-rep already work. This repository makes **no accuracy claims**: nothing has been validated against labelled
-reps yet.
+**Status: work in progress.** Every threshold is a provisional placeholder in `pullup_rom/config.py`. The one
+calibration so far is the dead-hang elbow threshold for the 3D angle (144 degrees), set from two stock clips whose
+reps the project owner labelled as full range of motion. It is one-sided: with no bent-elbow examples it is the
+strictest value that keeps those reps FULL, and it says nothing about where a bent elbow starts. The 2D angle has
+no threshold (it depends on the camera view), so with `--source image` the arms check shows **UNKNOWN**. This
+repository makes **no accuracy claims**: nothing has been validated on held-out, labelled reps yet.
 
 ## How a rep is judged
 - The pose model (MediaPipe Pose Landmarker, behind a swappable `PoseBackend` interface) finds body points per frame.
@@ -16,7 +17,8 @@ reps yet.
   units, so it does not depend on image size.
 - A rep runs from the bottom of a hang, up to the peak, and back to the bottom.
 - **FULL** needs both: the head cleared the bar, and the bottom elbow angle reached the dead-hang threshold.
-  A failed head check is NOT FULL. Until the threshold is calibrated, a rep that clears the bar is UNKNOWN.
+  A failed head check is NOT FULL. If the angle source has no calibrated threshold (currently the 2D angle), or the clip ends
+  before the arms come back down, a rep that clears the bar is UNKNOWN.
   The elbow angle at the top of a rep is never used.
 - Reps the tool cannot trust (tracking gaps) are listed as "uncertain", never silently dropped.
 
@@ -53,7 +55,8 @@ Fixed camera on a tripod, front or back view (not the side), whole body and the 
 even light, nothing in front of the bar, and the person large enough in frame.
 
 ## Limitations
-- Not calibrated: see Status. Not validated: no accuracy figures exist.
+- Calibrated on two clips only (see Status) and not validated: no accuracy figures exist. The 3D elbow angle varies
+  with the person and the camera view, so one threshold from two clips may not transfer.
 - Needs a front or back view. Side views and tilted bars are flagged but not supported.
 - One person is tracked. The 3D elbow angle never reaches a perfectly straight 180 degrees on the footage tried
   so far, so the dead-hang threshold has to be found from data, separately for the 3D and 2D angle.
