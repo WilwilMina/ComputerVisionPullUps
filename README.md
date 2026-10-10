@@ -48,6 +48,13 @@ frames. Re-run in seconds with `--keypoints out\result.keypoints.npz`. Other opt
 
 If a video will not open, re-export it as a standard H.264 `.mp4`.
 
+### Optional: your own reference clip
+The 3D elbow angle is a model estimate that differs by person and camera view, so one threshold does not fit everyone. If you film a clip of at least 3 reps you know were full (a real dead hang each time, chin over the bar) from the same camera view, the arms threshold can be derived from it:
+```
+.venv\Scripts\python.exe -m pullup_rom.cli your_video.mp4 -o out\result.mp4 --reference your_good_reps.mp4
+```
+The threshold is the lowest whole degree at or below your own reference reps (so those reps pass by construction). It is a floor from good reps only: nothing here knows how far below it is a bent elbow, and a few good reps vary by several degrees, so later good reps can fall just under it. `--reference-tolerance-deg` lowers it by a margin you choose; the default is 0 and no value has been sized yet. Use either `--reference` or `--dead-hang-deg`, not both. Only the arms check changes.
+
 ## Reading the video
 Left: the person, a green skeleton and a dashed bar line, and a live elbow readout at the bottom-left (labelled a model estimate; hidden on frames where the angle is not valid). Top right: the rep counter. Side table: rep number,
 head over the bar (yes/no), arms straight (yes/no/UNKNOWN), bottom elbow angle, pull time, verdict. Bottom: head

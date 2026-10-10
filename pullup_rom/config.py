@@ -75,6 +75,12 @@ REP_BOTTOM_BAND_BODY_SCALES = 0.15  # PROVISIONAL; frames within this of a valle
 REP_MIN_ASCENT_S = 0.3  # PROVISIONAL, seconds; start-to-peak shorter than this is a tracking glitch, not a rep (discarded, listed). Not a form judgement
 REP_MAX_GAP_S = 0.5  # PROVISIONAL, seconds; a missing-data gap longer than this mid-rep discards that attempt
 
+# --- Per-person reference calibration (optional) ---
+REFERENCE_TOLERANCE_DEG = 0.0  # PROVISIONAL, degrees allowed BELOW the lowest reference bottom; 0 = the strict floor. NOT sized: there are no bent-elbow
+# reps to size it against. On the dev clips a person's later good reps fell below a floor taken from their first 3 reps by 0.4 deg (pexels_15859716) and 5 deg
+# (IMG_0970), so 0 will falsely reject some good reps; a value needs the owner's own good and bent reps (see docs/PROGRESS.md).
+REFERENCE_MIN_REPS = 3  # PROVISIONAL, a count; a reference clip needs at least this many complete, known-good reps (head over the bar, bottom angle known)
+
 # --- Rendering and CLI (slice 4) ---
 RENDER_VIDEO_MAX_HEIGHT_PX = 720  # the source video is drawn at most this tall (never enlarged)
 RENDER_PANEL_WIDTH_PX = 520  # side panel with the rep counter and table

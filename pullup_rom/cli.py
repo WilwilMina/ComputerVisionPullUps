@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Optional, Sequence
 
 from . import config
+from .calibrate import calibrate_from_reference
 from .camera import CameraChecks, camera_checks, camera_warnings
 from .metrics import MetricsParams, Signals, compute_signals
 from .pose import MediaPipePoseBackend, PoseResult, load_pose, save_pose
@@ -55,7 +56,7 @@ def build_summary(
         "duration_s": _num(n / pose.fps),
         "elbow_angle_source": source,
         "dead_hang_threshold_deg": dead_hang_deg,
-        "dead_hang_threshold_origin": dead_hang_origin,  # "unset" | "config" | "command line"
+        "dead_hang_threshold_origin": dead_hang_origin,  # "unset" | "config" | "command line" | "reference clip: ..."
         "head_clear_margin_body_scales": config.HEAD_CLEAR_MARGIN_BODY_SCALES,
         "frames_without_person_share": _num(1.0 - float(pose.detected.mean())),
         "invalid_share": {
@@ -115,8 +116,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap.add_argument("--source", default=config.ELBOW_ANGLE_SOURCE, choices=["world", "image"], help="elbow angle source")
     ap.add_argument("--variant", default=config.POSE_MODEL_VARIANT, choices=["lite", "full", "heavy"])
     ap.add_argument("--dead-hang-deg", type=float, help="dead-hang elbow angle for THIS source; use only a value you calibrated")
+    ap.add_argument("--reference-tolerance-deg", type=float, default=config.REFERENCE_TOLERANCE_DEG, help="degrees allowed below your lowest reference bottom (default 0 = strict floor; not sized yet, see docs/PROGRESS.md)")
+    ap.add_argument("--reference", help="a clip (video, or keypoints .npz) of YOUR OWN known-good reps: the arms threshold is derived from it, for this source; the same camera view as the video works best")
     args = ap.parse_args(argv)
 
+    if args.reference and args.dead_hang_deg is not None:
+        raise SystemExit("error: use either --reference or --dead-hang-deg, not both")
     video, out = Path(args.video), Path(args.output)
     if not video.is_file():
         raise SystemExit(f"error: video not found: {video}")
@@ -136,7 +141,23 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     except (FileNotFoundError, ValueError, OSError) as e:
         raise SystemExit(f"error: {e}")
 
-    if args.dead_hang_deg is not None:
+    reference = None
+    if args.reference:
+        try:
+            ref_path = Path(args.reference)
+            if ref_path.suffix.lower() == ".npz":
+                ref_pose = load_pose(ref_path)
+            else:
+                if not ref_path.is_file():
+                    raise FileNotFoundError(f"reference clip not found: {ref_path}")
+                ref_pose = MediaPipePoseBackend(args.variant, check_people=False).extract(ref_path)
+            reference = calibrate_from_reference(ref_pose, args.source, tolerance_deg=args.reference_tolerance_deg)
+        except (FileNotFoundError, ValueError, OSError) as e:
+            raise SystemExit(f"error: reference clip: {e}")
+    if reference is not None:
+        rep_params = RepParams.for_source(args.source, dead_hang_elbow_min_deg=reference.threshold_deg)
+        origin = f"{reference.origin} ({Path(args.reference).name})"
+    elif args.dead_hang_deg is not None:
         rep_params = RepParams.for_source(args.source, dead_hang_elbow_min_deg=args.dead_hang_deg)
         origin = "command line"
     else:
