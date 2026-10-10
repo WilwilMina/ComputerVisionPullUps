@@ -25,6 +25,8 @@ class PoseResult:
     frame_size: tuple[int, int]  # (width, height) in pixels
     timestamps_ms: np.ndarray  # float64 [F]
     world: Optional[np.ndarray] = None  # float32 [F, J, 3], metric 3D, if the backend has it
+    people_count: Optional[np.ndarray] = None  # int16 [F], people seen per frame (the tool follows one); None for old caches / backends that do not count
+    follow_check: Optional[np.ndarray] = None  # int8 [F]: 1 the followed person is the one hanging on the bar, 0 not, -1 not applicable (one person / nobody hanging)
 
     def __post_init__(self) -> None:
         kp = self.keypoints
@@ -36,6 +38,10 @@ class PoseResult:
             raise ValueError("timestamps_ms must have one entry per frame")
         if self.world is not None and self.world.shape != kp.shape:
             raise ValueError(f"world must match keypoints shape {kp.shape}, got {self.world.shape}")
+        if self.people_count is not None and self.people_count.shape != (kp.shape[0],):
+            raise ValueError("people_count must have one entry per frame")
+        if self.follow_check is not None and self.follow_check.shape != (kp.shape[0],):
+            raise ValueError("follow_check must have one entry per frame")
         if not self.fps > 0:
             raise ValueError("fps must be positive")
 
@@ -75,6 +81,62 @@ def empty_frame(num_joints: int = config.NUM_LANDMARKS) -> np.ndarray:
     return out
 
 
+def _confident(kp: np.ndarray, joints: Sequence[int]) -> bool:
+    return bool((kp[list(joints), 2] >= config.MIN_LANDMARK_CONFIDENCE).all() and np.isfinite(kp[list(joints), :2]).all())
+
+
+def is_person(kp: np.ndarray) -> bool:
+    """A real detection: both shoulders confident (a stray low-confidence pose does not count as a person)."""
+    return _confident(kp, (config.LEFT_SHOULDER, config.RIGHT_SHOULDER))
+
+
+def is_hanging(kp: np.ndarray) -> bool:
+    """Both wrists above the shoulders: hanging on the bar (image y grows downward).
+
+    Wrist POSITIONS only, not their confidence: a lifter's wrists are often low-confidence at the bar (hands wrapped over it,
+    seen from behind), and requiring confident wrists would hide exactly the person we want to find. A person whose arms
+    are merely raised also qualifies; that is accepted.
+    """
+    if not is_person(kp):
+        return False
+    w = kp[[config.LEFT_WRIST, config.RIGHT_WRIST], 1]
+    sh = kp[[config.LEFT_SHOULDER, config.RIGHT_SHOULDER], 1]
+    return bool(np.isfinite(w).all() and (w < sh).all())
+
+
+def _centre(kp: np.ndarray) -> np.ndarray:
+    pts = kp[[config.LEFT_SHOULDER, config.RIGHT_SHOULDER, config.LEFT_HIP, config.RIGHT_HIP], :2]
+    pts = pts[np.isfinite(pts).all(axis=1)]
+    return pts.mean(axis=0) if len(pts) else np.array([np.nan, np.nan])
+
+
+def _shoulder_width(kp: np.ndarray) -> float:
+    w = float(np.linalg.norm(kp[config.LEFT_SHOULDER, :2] - kp[config.RIGHT_SHOULDER, :2]))
+    return w if np.isfinite(w) else 0.0
+
+
+def count_people(candidates: Sequence[np.ndarray]) -> int:
+    return sum(is_person(c) for c in candidates)
+
+
+def select_person(candidates: Sequence[np.ndarray], previous: Optional[np.ndarray]) -> Optional[int]:
+    """Index of the person to follow among this frame's detections, or None if there are none.
+
+    People hanging on the bar are preferred (a bystander or spotter is not hanging). Among the preferred, follow the
+    one nearest to where the followed person was in the previous frame; with no history, the largest (nearest the camera).
+    """
+    if not candidates:
+        return None
+    pool = [i for i, c in enumerate(candidates) if is_hanging(c)] or [i for i, c in enumerate(candidates) if is_person(c)] or list(range(len(candidates)))
+    if previous is not None and np.isfinite(_centre(previous)).all():
+        prev = _centre(previous)
+        dist = {i: float(np.linalg.norm(_centre(candidates[i]) - prev)) for i in pool}
+        dist = {i: d for i, d in dist.items() if np.isfinite(d)}
+        if dist:
+            return min(dist, key=dist.get)
+    return max(pool, key=lambda i: _shoulder_width(candidates[i]))
+
+
 def model_path(variant: str) -> Path:
     return Path(config.POSE_MODEL_DIR) / f"pose_landmarker_{variant}.task"
 
@@ -99,12 +161,30 @@ def progress_line(done: int, total: int) -> str:
     return f"pose model: {done} frames"
 
 
+def follow_agreement(candidates: Sequence[np.ndarray], chosen: Optional[int], followed: np.ndarray) -> int:
+    """Is the person the measurement pass followed the one hanging on the bar? 1 yes, 0 no, -1 not applicable.
+
+    Only judged on frames with two or more people and a person hanging. The followed person matches when their body
+    centre is nearer to the hanging person than to any other detected person (no distance cutoff).
+    """
+    if chosen is None or not is_hanging(candidates[chosen]) or count_people(candidates) < 2:
+        return -1
+    centre = _centre(followed)
+    if not np.isfinite(centre).all():
+        return -1
+    people = [i for i, c in enumerate(candidates) if is_person(c)]
+    nearest = min(people, key=lambda i: float(np.linalg.norm(_centre(candidates[i]) - centre)))
+    return 1 if nearest == chosen else 0
+
+
 class MediaPipePoseBackend:
-    def __init__(self, variant: str = config.POSE_MODEL_VARIANT, progress: bool = True):
+    def __init__(self, variant: str = config.POSE_MODEL_VARIANT, progress: bool = True, check_people: bool = True):
         self.variant = variant
         self.progress = progress
+        self.check_people = check_people
 
-    def extract(self, video_path: str | Path) -> PoseResult:
+    def _frames(self, video_path: str | Path, num_poses: int, label: str):
+        """Yield (frame index, timestamp ms, mediapipe result, width, height, fps) for every frame, running the model with num_poses."""
         import cv2
         import mediapipe as mp
         from mediapipe.tasks.python import BaseOptions, vision
@@ -122,47 +202,73 @@ class MediaPipePoseBackend:
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-
         options = vision.PoseLandmarkerOptions(
             base_options=BaseOptions(model_asset_path=str(model)),
             running_mode=vision.RunningMode.VIDEO,
-            num_poses=1,
+            num_poses=num_poses,
             min_pose_detection_confidence=config.MIN_POSE_DETECTION_CONFIDENCE,
             min_pose_presence_confidence=config.MIN_POSE_PRESENCE_CONFIDENCE,
             min_tracking_confidence=config.MIN_TRACKING_CONFIDENCE,
         )
+        try:
+            with vision.PoseLandmarker.create_from_options(options) as landmarker:
+                i = 0
+                while True:
+                    ok, bgr = cap.read()
+                    if not ok:
+                        break
+                    # Synthetic, strictly increasing timestamps; container PTS can be unreliable.
+                    ts = int(round(i * 1000.0 / fps))
+                    image = mp.Image(image_format=mp.ImageFormat.SRGB, data=cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
+                    yield i, ts, landmarker.detect_for_video(image, ts), width, height, float(fps)
+                    i += 1
+                    if self.progress and i % config.POSE_PROGRESS_EVERY_FRAMES == 0:
+                        print(progress_line(i, total).replace("pose model", label), file=sys.stderr, flush=True)
+        finally:
+            cap.release()
+
+    def extract(self, video_path: str | Path) -> PoseResult:
+        """Measurement pass: ONE person per frame (num_poses=1; the calibration and every measurement were made this way),
+        then, unless disabled, a people-check pass that counts the people and checks the followed one is on the bar."""
         frames, worlds, stamps = [], [], []
-        with vision.PoseLandmarker.create_from_options(options) as landmarker:
-            i = 0
-            while True:
-                ok, bgr = cap.read()
-                if not ok:
-                    break
-                # Synthetic, strictly increasing timestamps; container PTS can be unreliable.
-                ts = int(round(i * 1000.0 / fps))
-                rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
-                image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-                res = landmarker.detect_for_video(image, ts)
-                if res.pose_landmarks:
-                    frames.append(landmarks_to_array(res.pose_landmarks[0], width, height))
-                    worlds.append(world_to_array(res.pose_world_landmarks[0]))
-                else:
-                    frames.append(empty_frame())
-                    worlds.append(np.full((config.NUM_LANDMARKS, 3), np.nan, dtype=np.float32))
-                stamps.append(float(ts))
-                i += 1
-                if self.progress and i % config.POSE_PROGRESS_EVERY_FRAMES == 0:
-                    print(progress_line(i, total), file=sys.stderr, flush=True)
-        cap.release()
+        width = height = 0
+        fps = 0.0
+        for i, ts, res, width, height, fps in self._frames(video_path, config.POSE_NUM_POSES, "pose model"):
+            if res.pose_landmarks:
+                frames.append(landmarks_to_array(res.pose_landmarks[0], width, height))
+                worlds.append(world_to_array(res.pose_world_landmarks[0]))
+            else:
+                frames.append(empty_frame())
+                worlds.append(np.full((config.NUM_LANDMARKS, 3), np.nan, dtype=np.float32))
+            stamps.append(float(ts))
         if not frames:
             raise ValueError(f"No frames decoded from {video_path}")
-        return PoseResult(
+        result = PoseResult(
             keypoints=np.stack(frames),
-            fps=float(fps),
+            fps=fps,
             frame_size=(width, height),
             timestamps_ms=np.asarray(stamps, dtype=np.float64),
             world=np.stack(worlds),
         )
+        if self.check_people:
+            result.people_count, result.follow_check = self.check_people_pass(video_path, result)
+        return result
+
+    def check_people_pass(self, video_path: str | Path, result: PoseResult) -> tuple[np.ndarray, np.ndarray]:
+        """Second pass with several poses allowed: (people seen per frame, follow check per frame). Leaves the keypoints alone."""
+        counts = np.zeros(result.num_frames, dtype=np.int16)
+        follow = np.full(result.num_frames, -1, dtype=np.int8)
+        previous = None
+        for i, _, res, width, height, _ in self._frames(video_path, config.POSE_COUNT_NUM_POSES, "people check"):
+            if i >= result.num_frames:
+                break
+            cands = [landmarks_to_array(p, width, height) for p in res.pose_landmarks]
+            counts[i] = count_people(cands)
+            chosen = select_person(cands, previous)
+            if chosen is not None:
+                previous = cands[chosen]
+            follow[i] = follow_agreement(cands, chosen, result.keypoints[i])
+        return counts, follow
 
 
 def save_pose(path: str | Path, result: PoseResult) -> None:
@@ -175,6 +281,10 @@ def save_pose(path: str | Path, result: PoseResult) -> None:
     )
     if result.world is not None:
         arrays["world"] = result.world
+    if result.people_count is not None:
+        arrays["people_count"] = result.people_count
+    if result.follow_check is not None:
+        arrays["follow_check"] = result.follow_check
     np.savez_compressed(path, **arrays)
 
 
@@ -186,6 +296,8 @@ def load_pose(path: str | Path) -> PoseResult:
             frame_size=(int(z["frame_size"][0]), int(z["frame_size"][1])),
             timestamps_ms=z["timestamps_ms"],
             world=z["world"] if "world" in z.files else None,
+            people_count=z["people_count"] if "people_count" in z.files else None,
+            follow_check=z["follow_check"] if "follow_check" in z.files else None,
         )
 
 

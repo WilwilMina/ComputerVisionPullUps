@@ -12,6 +12,9 @@ POSE_MODEL_URL_TEMPLATE = (
     "pose_landmarker_{variant}/float16/latest/pose_landmarker_{variant}.task"
 )
 POSE_MODEL_DIR = "models"  # relative to the working directory; *.task is gitignored
+POSE_NUM_POSES = 1  # the MEASUREMENT pass follows one person. Do NOT raise it: with 3, the same single person's 3D elbow read about 10 deg lower
+# on pexels_15859716 (132.6 -> 122.5 at the first bottom; re-runs at 1 are bit-identical), which would silently shift every calibrated number.
+POSE_COUNT_NUM_POSES = 3  # PROVISIONAL; the separate people-check pass allows up to this many people per frame, for counting only
 
 # MediaPipe library defaults (0..1). Not tuned; to calibrate on real footage.
 MIN_POSE_DETECTION_CONFIDENCE = 0.5
@@ -90,6 +93,8 @@ WARN_INVALID_SHARE = 0.30  # PROVISIONAL, 0..1; when this share of frames has no
 
 # --- Camera-setup warnings (provisional; read off the 9 dev clips, one positive example each) ---
 WARN_SIDE_VIEW_RATIO = 0.40  # PROVISIONAL; shoulder width / torso length below this = side view. Dev clips: front/back 0.46-0.62, side view 0.33
+WARN_MULTI_PERSON_SHARE = 0.20  # PROVISIONAL, 0..1; when this share of frames shows two or more people, the video and CLI warn (no data behind it)
+WARN_WRONG_PERSON_SHARE = 0.20  # PROVISIONAL, 0..1; when this share of the frames with several people follows someone not on the bar, warn (no data behind it)
 WARN_BAR_TILT_WRIST_GAP = 0.50  # PROVISIONAL; median left-right wrist height gap (body scales) above this = tilted bar or side view. Dev clips 0.04-0.22, tilted/side 0.83
 # --- Unsupported-style flag (kipping / swinging); advisory, never changes a verdict ---
 # PROVISIONAL, from ONE positive clip: the median torso tilt (3D world, from vertical) at the rep bottoms, as pullup_rom/style.py measures

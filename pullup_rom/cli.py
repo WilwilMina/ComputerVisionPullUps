@@ -68,6 +68,8 @@ def build_summary(
         "camera_checks": None if camera is None else {
             "shoulder_width_over_torso_length": _num(camera.shoulder_torso_ratio) if camera.shoulder_torso_ratio is not None else None,
             "wrist_height_gap_body_scales": _num(camera.wrist_gap_body_scales) if camera.wrist_gap_body_scales is not None else None,
+            "frames_with_several_people_share": None if camera.multi_person_share is None else _num(camera.multi_person_share),
+            "followed_not_on_bar_share_of_judged_frames": None if camera.wrong_person_share is None else _num(camera.wrong_person_share),
         },
         "style_checks": None if style is None else {
             "median_bottom_torso_tilt_deg": None if style.bottom_tilt_deg is None else _num(style.bottom_tilt_deg),
@@ -109,6 +111,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap.add_argument("--keypoints", help="use these cached keypoints (.npz) instead of running the pose model")
     ap.add_argument("--cache", help="where to save extracted keypoints (default: next to the output)")
     ap.add_argument("--no-cache", action="store_true", help="do not save extracted keypoints")
+    ap.add_argument("--no-people-check", action="store_true", help="skip the second pose pass that counts people and checks the tracked person is the one on the bar (halves the pose time)")
     ap.add_argument("--source", default=config.ELBOW_ANGLE_SOURCE, choices=["world", "image"], help="elbow angle source")
     ap.add_argument("--variant", default=config.POSE_MODEL_VARIANT, choices=["lite", "full", "heavy"])
     ap.add_argument("--dead-hang-deg", type=float, help="dead-hang elbow angle for THIS source; use only a value you calibrated")
@@ -122,7 +125,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         if args.keypoints:
             pose = load_pose(args.keypoints)
         else:
-            pose = MediaPipePoseBackend(args.variant).extract(video)
+            pose = MediaPipePoseBackend(args.variant, check_people=not args.no_people_check).extract(video)
             if not args.no_cache:
                 cache = Path(args.cache) if args.cache else out.with_suffix(".keypoints.npz")
                 save_pose(cache, pose)

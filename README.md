@@ -62,7 +62,8 @@ even light, nothing in front of the bar, and the person large enough in frame.
 - Calibrated on two clips only (see Status) and not validated: no accuracy figures exist. The 3D elbow angle varies
   with the person and the camera view, so one threshold from two clips may not transfer.
 - Needs a front or back view. Side views and tilted bars are flagged but not supported.
-- One person is tracked. The 3D elbow angle never reaches a perfectly straight 180 degrees on the footage tried
+- One person is tracked. A second pose pass counts the people in frame and checks that the tracked person is the one hanging on the bar; the tool warns when several people share the frame or the wrong one is followed (it does not switch person: asking the model for several people changed the single person's 3D elbow by about 10 degrees). On the one clip with a spotter it followed the spotter for part of the clip. `--no-people-check` skips this pass.
+- The 3D elbow angle never reaches a perfectly straight 180 degrees on the footage tried
   so far, so the dead-hang threshold has to be found from data, separately for the 3D and 2D angle.
 - BlazePose has no chin point; the nose stands in for the head.
 
