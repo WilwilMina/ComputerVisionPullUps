@@ -35,7 +35,7 @@ Short checklist of everything between today and "finished". Detail lives in `doc
 - [x] `docs/FAULTS.md` research (standards, fault table, datasets, person-to-person variation).
 - [x] Several-person handling: a people-check pass counts people and checks the tracked person is the one on the bar, and the CLI warns. It does not switch person (asking the model for several people changed the single person's 3D elbow by about 10 deg).
 - [x] Optional per-person reference calibration (`--reference`), built; not validated. A strict floor from 3 reference reps falsely rejected a later good rep in 2 of 4 people tried.
-- [x] Tracking gaps reviewed: 6 of 16 dev clips have uncertain attempts (7 in total); the conservative rule is kept by the owner's decision and the attempts are listed, never hidden.
+- [x] Tracking gaps reviewed: 5 of 16 clips have uncertain attempts (6 in total); the conservative rule is kept by the owner's decision and the attempts are listed, never hidden.
 
 ## Known gaps that will stay (state them in the README)
 - No validated bad-rep examples yet: bent-elbow and chin-short detection are untested on real footage.
