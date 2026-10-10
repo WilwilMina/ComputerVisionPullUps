@@ -47,6 +47,11 @@ def load_label_file(path: str | Path) -> dict:
     for key in ("assignment", "clips"):
         if key not in data:
             raise ValueError(f"labels file {path} has no '{key}'")
+    for c in data["clips"]:
+        for r in c.get("reps", []):
+            for key in ("index", "label", "top_s"):
+                if key not in r:
+                    raise ValueError(f"clip {c.get('clip', '?')}: a rep entry has no '{key}'")
     return data
 
 
@@ -89,9 +94,11 @@ def tally(rows: Sequence[ScoredRep]) -> dict[str, dict[str, Counter]]:
 
 def build_report(data: dict, keypoints_dir: str | Path, source: str = config.ELBOW_ANGLE_SOURCE) -> list[str]:
     rows: list[ScoredRep] = []
-    lines = [f"labels {data.get('round', '?')}: {data.get('status', '')[:70]}", f"pipeline: {source} elbow angle, dead-hang threshold {config.DEAD_HANG_ELBOW_MIN_DEG[source]}", ""]
+    lines = [f"labels {data.get('round', '?')}: {str(data.get('status') or '').replace('%', ' percent')[:70]}", f"pipeline: {source} elbow angle, dead-hang threshold {config.DEAD_HANG_ELBOW_MIN_DEG[source]}", ""]
     for c in data["clips"]:
         path = Path(keypoints_dir) / f"{c['clip']}.keypoints.npz"
+        if not path.exists():
+            raise ValueError(f"no keypoints file for {c['clip']}: expected {path}")
         _, analysis = analyze(load_pose(path), source)
         clip_rows = score_clip(data, c, analysis.reps)
         rows += clip_rows

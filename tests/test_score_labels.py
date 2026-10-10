@@ -70,3 +70,18 @@ def test_report_prints_counts_never_percentages_and_says_when_there_are_no_negat
     text = "\n".join(build_report(_data(reps, ["FULL", "FULL"]), tmp_path))
     assert "NO ACCURACY FIGURE" in text and "%" not in text.replace("0 scored negative", "")
     assert "2 x FULL" in text
+
+
+def test_a_malformed_labels_file_or_missing_keypoints_gives_a_clear_error(tmp_path):
+    import pytest
+
+    from pullup_rom.score_labels import load_label_file
+
+    bad = tmp_path / "bad.json"
+    bad.write_text(json.dumps({"assignment": {}, "clips": [{"clip": "c1", "reps": [{"index": 1, "top_s": 1.0}]}]}))
+    with pytest.raises(ValueError, match="no 'label'"):
+        load_label_file(bad)
+    data = _data([], [])
+    data["status"] = None
+    with pytest.raises(ValueError, match="no keypoints file"):
+        build_report(data, tmp_path)  # a null status is fine; the missing file is the error
