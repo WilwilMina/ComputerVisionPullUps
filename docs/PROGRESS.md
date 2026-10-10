@@ -108,6 +108,17 @@ The hands wrap over the bar, so the bar sits above the wrist landmark. `python -
 - Not scored, behaviour only: kipping `14284164`: the tool gave a confident NOT FULL on 7 of 8 reps (3D bottoms 116-125 deg), the 8th UNKNOWN (clip ended mid-rep). It has no kipping or unsupported-style warning; the only warning was the tilted-bar/side-view wrist-gap one. 3-person `10039581`: a person was tracked in every frame, so no "no person" warning, but 83% of frames lacked a usable head/elbow signal; the "results unreliable" warning fired and 0 reps were reported. Which person was tracked was not verified; several-person handling is not built.
 - Accuracy: none claimed. Held-out has 5 scored reps, 1 clip, 1 person, 0 negatives.
 
+## Research and fault catalogue (2026-10-09)
+`docs/FAULTS.md`: standards (top = chin over the bar in most tests, sources disagree on whole head / chest; bottom = locked elbows in tests, "active hang" among some coaches; kipping banned in several tests, allowed in the CrossFit Open), a fault table with signal / camera visibility / what the tool does today, datasets (none with labelled pull-up form), and person-to-person variation examples. No published number entered `config.py`. Proposals there (per-person reference, strictness profile, extra advisory flags) are NOT built and wait for the owner.
+
+## Synthetic rule sweeps on real signals (2026-10-09): rule logic only, NOT accuracy
+`python -m pullup_rom.rule_sweep report tests/fixtures/real_signals.json` (fixture = numeric head/elbow curves of labelled-FULL reps from 4 stock clips, no pixels; tests are marked synthetic). For every labelled-FULL rep the pipeline calls FULL, the head peak is capped lower, or the bottom elbow is bent, until the verdict flips. Flip points equal each rep's margin (confirming the rule logic end to end). Per clip (one person each), current threshold 144 deg, margin 0:
+- `10336041` (9 FULL reps; rep 1 is already NOT FULL on the head check, the known conflict): head drop to flip 0.06-0.49 body scales (median 0.39); bend to flip 2.5-10.0 deg (median 7.5).
+- `6389831` (3 reps): head drop 0.24-0.30 (median 0.28); bend 8.0-11.0 deg (median 8.5).
+- `7187450` (reps 1-5 labelled FULL; reps 1-3 are ALREADY NOT FULL, bottoms 138-142 deg): reps 4-5 flip at head drop 0.34-0.41, bend 3.0-8.5 deg.
+- `15859716` (4 reps): ALL already NOT FULL (bottoms 130-136 deg), nothing to flip.
+Reading: where the model's angle sits above the threshold, the margins are only about 2.5-11 degrees of bend, small next to the 10-15 degree person-to-person differences seen. This is a statement about margins, not about whether the labels or threshold are right.
+
 ## Live elbow readout (2026-10-09)
 The video shows `elbow N deg (model estimate, 3D)` (or `2D pixel angle` with `--source image`) at the bottom-left of the picture, only on frames where `elbow_valid` holds, so it is hidden when the angle is not trustworthy. It reads the same smoothed signal the arms check uses. Tests: text and hiding rules; pixels differ only when the readout is drawn.
 
