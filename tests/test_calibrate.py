@@ -84,13 +84,19 @@ def _write_video(path, frames):
     w.release()
 
 
-def test_cli_uses_the_reference_threshold_records_where_it_came_from_and_refuses_a_conflicting_flag(tmp_path, capsys):
-    main_pose = _pose([140, 140, 140, 140])  # this person's good reps read 140
-    ref_pose = _pose([140, 140, 140, 140])
-    video, kp, ref, out = tmp_path / "in.mp4", tmp_path / "kp.npz", tmp_path / "ref.npz", tmp_path / "out.mp4"
-    _write_video(video, main_pose.num_frames)
-    save_pose(kp, main_pose)
-    save_pose(ref, ref_pose)
+def _cli_files(tmp_path, pose):
+    video, kp = tmp_path / "in.mp4", tmp_path / "kp.npz"
+    _write_video(video, pose.num_frames)
+    save_pose(kp, pose)
+    return video, kp
+
+
+@pytest.mark.slow
+def test_cli_uses_the_reference_threshold_and_records_where_it_came_from(tmp_path, capsys):
+    pose = _pose([140, 140, 140, 140])  # this person's good reps read 140
+    video, kp = _cli_files(tmp_path, pose)
+    ref, out = tmp_path / "ref.npz", tmp_path / "out.mp4"
+    save_pose(ref, _pose([140, 140, 140, 140]))
     assert cli.main([str(video), "-o", str(out), "--keypoints", str(kp), "--reference", str(ref)]) == 0
     printed = capsys.readouterr().out
     assert "reference clip" in printed and "reps: 3" in printed
@@ -100,7 +106,13 @@ def test_cli_uses_the_reference_threshold_records_where_it_came_from_and_refuses
     default = tmp_path / "default.mp4"
     cli.main([str(video), "-o", str(default), "--keypoints", str(kp)])
     assert [r["full"] for r in json.loads(default.with_suffix(".json").read_text(encoding="utf-8"))["reps"]] == [False, False, False]
+    assert config.DEAD_HANG_ELBOW_MIN_DEG["world"] == 144.0  # the global threshold is untouched
 
+
+def test_cli_refuses_a_conflicting_flag_a_short_reference_and_a_missing_one(tmp_path):
+    video, kp = _cli_files(tmp_path, _pose([140, 140, 140, 140]))
+    ref, out = tmp_path / "ref.npz", tmp_path / "out.mp4"
+    save_pose(ref, _pose([140, 140, 140, 140]))
     with pytest.raises(SystemExit, match="either --reference or --dead-hang-deg"):
         cli.main([str(video), "-o", str(out), "--keypoints", str(kp), "--reference", str(ref), "--dead-hang-deg", "150"])
     short = tmp_path / "short.npz"
@@ -109,4 +121,4 @@ def test_cli_uses_the_reference_threshold_records_where_it_came_from_and_refuses
         cli.main([str(video), "-o", str(out), "--keypoints", str(kp), "--reference", str(short)])
     with pytest.raises(SystemExit, match="reference clip"):
         cli.main([str(video), "-o", str(out), "--keypoints", str(kp), "--reference", str(tmp_path / "missing.mp4")])
-    assert config.DEAD_HANG_ELBOW_MIN_DEG["world"] == 144.0  # the global threshold is untouched
+    assert not out.exists()  # nothing is rendered when the reference is refused
