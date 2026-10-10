@@ -119,6 +119,12 @@ The hands wrap over the bar, so the bar sits above the wrist landmark. `python -
 - `15859716` (4 reps): ALL already NOT FULL (bottoms 130-136 deg), nothing to flip.
 Reading: where the model's angle sits above the threshold, the margins are only about 2.5-11 degrees of bend, small next to the 10-15 degree person-to-person differences seen. This is a statement about margins, not about whether the labels or threshold are right.
 
+## Unsupported-style flag (kipping), 2026-10-09
+`pullup_rom/style.py`: median over reps of the torso tilt from vertical (3D world landmarks) at the rep bottoms; at or above `UNSUPPORTED_SWING_BOTTOM_TILT_DEG` (15, provisional) with at least 2 measurable reps the CLI adds an UNSUPPORTED STYLE warning (banner, console, JSON `warnings` and `style_checks`). It never changes a verdict or a measurement; the reps and verdicts are still printed. Tested on synthetic poses and, when the caches exist locally, on the real clips.
+- Real clips: kipping `14284164` reads 23.1 and is flagged. Labelled non-kipping clips read 3.7-10.7 and are not flagged (`10336041` 6.3, `6389831` 7.5, `15859716` 3.7, `7187450` 10.7). One positive clip only, so the cutoff is a provisional midpoint, not a validated value.
+- Two unlabelled clips are also flagged. By an agent's look at the frames (not the owner's): `14293451` (16.3) is kipping with clear leg swing, high confidence, plus a late stretch of knee raises that is not pull-ups; `35585615` (24.7) is a handheld close-up from behind with the hips and legs mostly out of frame, upper body looks strict, unsure and low confidence, so probably a false flag where the hip landmarks are guessed. So at least one likely false positive and one likely true positive beyond the labelled clip.
+- Limits: from a front or back camera the fore-aft swing, the main part of a kip, is the least observable; a close-up that cuts off the hips makes the measure unreliable. Advisory only.
+
 ## Live elbow readout (2026-10-09)
 The video shows `elbow N deg (model estimate, 3D)` (or `2D pixel angle` with `--source image`) at the bottom-left of the picture, only on frames where `elbow_valid` holds, so it is hidden when the angle is not trustworthy. It reads the same smoothed signal the arms check uses. Tests: text and hiding rules; pixels differ only when the readout is drawn.
 

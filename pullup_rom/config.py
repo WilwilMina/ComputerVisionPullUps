@@ -95,8 +95,10 @@ WARN_BAR_TILT_WRIST_GAP = 0.50  # PROVISIONAL; median left-right wrist height ga
 # PROVISIONAL, from ONE positive clip: the median torso tilt (3D world, from vertical) at the rep bottoms, as pullup_rom/style.py measures
 # it, is 23.1 deg on pexels_14284164 (kipping, owner-confirmed as unsupported style) and at most 10.7 deg on the four labelled
 # non-kipping clips (pexels_10336041 6.3, pexels_6389831 7.5, pexels_15859716 3.7, pexels_7187450 10.7). 15 sits between them; it was NOT
-# fitted finely. UNLABELLED dev clips: pexels_35585615 reads 24.7 and pexels_14293451 16.3 (both flagged; style not yet checked by eye),
-# the rest read 5.3-10.7. The model's 3D lean is least reliable toward/away from the camera, so this is a coarse advisory.
+# fitted finely. Two UNLABELLED dev clips are also flagged and were looked at by an agent from frames (not by the owner): pexels_14293451
+# reads 16.3 and shows clear leg swing (kipping, high confidence: a true flag); pexels_35585615 reads 24.7 but is a handheld close-up
+# from behind with the hips and legs mostly out of frame, strict-looking upper body (unsure, low confidence: probably a FALSE flag, since
+# the hip landmarks are guessed there). The other dev clips read 5.3-10.7. The model's 3D lean is least reliable toward/away from the camera, so this is a coarse advisory.
 UNSUPPORTED_SWING_BOTTOM_TILT_DEG = 15.0  # flag when the median bottom tilt reaches this many degrees from vertical
 UNSUPPORTED_SWING_MIN_REPS = 2  # fewer measurable reps than this: no flag (not enough to call a style)
 SWING_BOTTOM_HALF_WINDOW_FRAMES = 2  # the bottom tilt is the median over the rep's start/end frame +/- this many frames
