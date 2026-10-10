@@ -83,7 +83,7 @@ def test_the_multi_person_warning_appears_at_the_configured_share_and_never_for_
     assert not camera_warnings(CameraChecks(0.55, 0.05, None))
     assert not camera_warnings(CameraChecks(0.55, 0.05, share - 0.01))
     msg = camera_warnings(CameraChecks(0.55, 0.05, share))
-    assert len(msg) == 1 and "more than one person" in msg[0] and "hanging on the bar" in msg[0]
+    assert len(msg) == 1 and "more than one person" in msg[0] and "not necessarily the one hanging on the bar" in msg[0]
 
 
 def test_the_wrong_person_warning_needs_judged_frames_and_the_configured_share():

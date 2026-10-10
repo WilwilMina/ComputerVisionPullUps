@@ -41,8 +41,11 @@ def test_a_tolerance_lowers_the_threshold_by_exactly_that_many_degrees_and_must_
     pose = _pose([160, 155, 158, 160])
     strict, loose = calibrate_from_reference(pose, "world"), calibrate_from_reference(pose, "world", tolerance_deg=4.0)
     assert strict.threshold_deg - loose.threshold_deg == 4.0 and "4 deg tolerance" in loose.origin and "tolerance" not in strict.origin
-    with pytest.raises(ValueError, match="0 or more"):
-        calibrate_from_reference(pose, "world", tolerance_deg=-1.0)
+    for bad in (-1.0, float("nan"), float("inf")):
+        with pytest.raises(ValueError, match="finite number"):
+            calibrate_from_reference(pose, "world", tolerance_deg=bad)
+    with pytest.raises(ValueError, match="every rep would pass"):
+        calibrate_from_reference(pose, "world", tolerance_deg=500.0)
 
 
 def test_two_people_get_different_thresholds_and_the_same_arms_pass_for_one_and_fail_for_the_other():
@@ -122,3 +125,19 @@ def test_cli_refuses_a_conflicting_flag_a_short_reference_and_a_missing_one(tmp_
     with pytest.raises(SystemExit, match="reference clip"):
         cli.main([str(video), "-o", str(out), "--keypoints", str(kp), "--reference", str(tmp_path / "missing.mp4")])
     assert not out.exists()  # nothing is rendered when the reference is refused
+
+
+def test_cli_refuses_a_nonsense_tolerance_or_threshold_before_rendering(tmp_path):
+    video, kp = _cli_files(tmp_path, _pose([140, 140, 140, 140]))
+    ref, out = tmp_path / "ref.npz", tmp_path / "out.mp4"
+    save_pose(ref, _pose([140, 140, 140, 140]))
+    base = [str(video), "-o", str(out), "--keypoints", str(kp)]
+    for tol in ("inf", "500", "-3", "nan"):
+        with pytest.raises(SystemExit, match="error"):
+            cli.main(base + ["--reference", str(ref), "--reference-tolerance-deg", tol])
+    for deg in ("inf", "nan", "0", "-5"):
+        with pytest.raises(SystemExit, match="--dead-hang-deg must be"):
+            cli.main(base + ["--dead-hang-deg", deg])
+    with pytest.raises(SystemExit, match="only applies together with --reference"):
+        cli.main(base + ["--reference-tolerance-deg", "3"])
+    assert not out.exists()

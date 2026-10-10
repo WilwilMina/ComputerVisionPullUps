@@ -61,6 +61,9 @@ def calibrate_from_reference(
             f"({len(complete) - len(used)} complete but head short of the bar or no bottom angle); need at least {min_reps} known-good reps"
         )
     bottoms = tuple(float(r.bottom_elbow_deg) for r in used)
-    if not tolerance_deg >= 0:
-        raise ValueError(f"tolerance must be 0 or more degrees, got {tolerance_deg}")
-    return Reference(reference_threshold(bottoms) - float(tolerance_deg), bottoms, len(complete), len(used), source, float(tolerance_deg))
+    if not (math.isfinite(tolerance_deg) and tolerance_deg >= 0):
+        raise ValueError(f"tolerance must be a finite number of degrees, 0 or more, got {tolerance_deg}")
+    threshold = reference_threshold(bottoms) - float(tolerance_deg)
+    if threshold <= 0:
+        raise ValueError(f"a tolerance of {tolerance_deg:g} deg would put the threshold at {threshold:g} deg, so every rep would pass; use a smaller tolerance")
+    return Reference(threshold, bottoms, len(complete), len(used), source, float(tolerance_deg))

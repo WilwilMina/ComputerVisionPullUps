@@ -52,6 +52,6 @@ Short checklist of everything between today and "finished". Detail lives in `doc
 - [ ] Final `qa` pass, full test run, security scan, update PROGRESS, push.
 
 ## Optional
-- [ ] Download the two Wikimedia demos (done, in `data/external/`; not yet run through the pipeline) and run them.
+- [ ] Run the Marine Corps technique demo through the pipeline (downloaded into `data/external/`, not yet run). The Navy SEAL demo (`wikimedia_navy_seal_buds`) is also downloaded and not yet run. The earlier Commons demo `wikimedia_pullups_demo` (FitnessScape) was run before (2 reps, bottoms 137.6 and 144.0 deg, unlabelled).
 - [ ] Pixabay `65659` (back view at a bar, unverified content; its file host `cdn.pixabay.com` is not on the approved list).
 - [ ] ViTPose comparison (needs PyTorch and a weights download; ask first). Only worth it if MediaPipe tracking turns out to be the weak link.

@@ -112,7 +112,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap.add_argument("--keypoints", help="use these cached keypoints (.npz) instead of running the pose model")
     ap.add_argument("--cache", help="where to save extracted keypoints (default: next to the output)")
     ap.add_argument("--no-cache", action="store_true", help="do not save extracted keypoints")
-    ap.add_argument("--no-people-check", action="store_true", help="skip the second pose pass that counts people and checks the tracked person is the one on the bar (halves the pose time)")
+    ap.add_argument("--no-people-check", action="store_true", help="skip the second pose pass that counts people and checks the tracked person is the one on the bar (it is a second run of the pose model, so skipping it saves that time)")
     ap.add_argument("--source", default=config.ELBOW_ANGLE_SOURCE, choices=["world", "image"], help="elbow angle source")
     ap.add_argument("--variant", default=config.POSE_MODEL_VARIANT, choices=["lite", "full", "heavy"])
     ap.add_argument("--dead-hang-deg", type=float, help="dead-hang elbow angle for THIS source; use only a value you calibrated")
@@ -120,6 +120,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap.add_argument("--reference", help="a clip (video, or keypoints .npz) of YOUR OWN known-good reps: the arms threshold is derived from it, for this source; the same camera view as the video works best")
     args = ap.parse_args(argv)
 
+    if args.dead_hang_deg is not None and not (math.isfinite(args.dead_hang_deg) and args.dead_hang_deg > 0):
+        raise SystemExit("error: --dead-hang-deg must be a finite number of degrees above 0")
+    if args.reference_tolerance_deg != config.REFERENCE_TOLERANCE_DEG and not args.reference:
+        raise SystemExit("error: --reference-tolerance-deg only applies together with --reference")
     if args.reference and args.dead_hang_deg is not None:
         raise SystemExit("error: use either --reference or --dead-hang-deg, not both")
     video, out = Path(args.video), Path(args.output)

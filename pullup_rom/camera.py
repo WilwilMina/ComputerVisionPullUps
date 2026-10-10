@@ -64,7 +64,7 @@ def camera_warnings(checks: CameraChecks) -> list[str]:
         out.append("WARNING: the wrists are at very different heights (tilted bar or side view) - the bar line may be wrong")
     if checks.multi_person_share is not None and checks.multi_person_share >= config.WARN_MULTI_PERSON_SHARE:
         out.append(
-            f"WARNING: {100 * checks.multi_person_share:.0f}% of frames show more than one person - the tool follows the one hanging on the bar; "
+            f"WARNING: {100 * checks.multi_person_share:.0f}% of frames show more than one person - the tool tracks one person (the pose model's own choice, not necessarily the one hanging on the bar); "
             "check the video that it is the right person"
         )
     if checks.wrong_person_share is not None and checks.wrong_person_share >= config.WARN_WRONG_PERSON_SHARE:
